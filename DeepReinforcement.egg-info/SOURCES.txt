@@ -7,3 +7,6 @@ DeepReinforcement.egg-info/requires.txt
 DeepReinforcement.egg-info/top_level.txt
 deep_calibration/__init__.py
 deep_calibration/deep_calibration.py
+deep_calibration/kinematics.py
+deep_simulation/__init__.py
+deep_simulation/sim_env.py

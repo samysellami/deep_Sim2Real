@@ -10,6 +10,7 @@ def load_requirements(filename):
 setup(
     name='DeepReinforcement',
     version='0.1.0',
-    packages=find_packages(include=['deep_calibration']),
+    packages=find_packages(include=['deep_calibration', 
+    								'deep_simulation']),
     install_requires=load_requirements("requirements.txt")
 )

@@ -1,2 +1,4 @@
 numpy>=1.16.4
 matplotlib
+catalyst
+catalyst-rl
