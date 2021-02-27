@@ -1,5 +1,5 @@
 import numpy as np
-from deep_calibration.kinematics import kinematics
+from kinematics import Kinematics
 import math
 
 class Calibration():
@@ -20,7 +20,7 @@ if __name__ == "__main__":
         [0, -math.pi/2, 163.9, 0], [0, math.pi/2, 115.7, 0], [0, 0, 92.2, 0]])
     q = np.array([0, math.pi/2, 0, 0, 0, 0])
     
-    FK = kinematics(DH)
+    FK = Kinematics(DH)
     print('forward kinematics: =\n', FK.forward_kinematcis(q))
 
 

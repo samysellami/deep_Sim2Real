@@ -22,7 +22,7 @@ class CoppeliaSimEnvWrapper(EnvironmentSpec):
         super().__init__(visualize=visualize, mode=mode)
 
         # Scene selection
-        scene_file_path = os.path.join(os.getcwd(), 'deep_simulation/UR10_gripper.ttt')
+        scene_file_path = os.path.join(os.getcwd(), 'deep_simulation/scenes/UR10_gripper.ttt')
 
         # Simulator launch
         self.env = PyRep()

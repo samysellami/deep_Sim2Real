@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import multi_dot
 
 
-class kinematics():
+class Kinematics():
 
 	def __init__(self, DH , delta = [0,0,0,0,0,0], joint1 = [0,0,0], 
     			 joint2 = [0,0,0,0], joint3 = [0,0,0,0], joint4 = [0,0,0,0], joint5 = [0,0,0,0]):
