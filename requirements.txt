@@ -1,4 +1,6 @@
 numpy>=1.16.4
 matplotlib
-catalyst
-catalyst-rl
+tensorflow==1.14
+gym
+# catalyst
+# catalyst-rl

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 pyrep_src="../PyRep"
-env_name="deep_env"
+spinningup_src = "../spinningup"
+baselines_src = "../baselines"
+RL_src =  baselines_src # choose which RL implementations to use
+env_name="deep_env" # virtual environment name
 
 if [ ! -d $env_name ]
 then
@@ -12,5 +15,8 @@ then
   pip install -r requirements.txt
   pip install .
   cd -
+  cd $RL_src
+  pip install .
+  cd -  
   pip install -e .
 fi

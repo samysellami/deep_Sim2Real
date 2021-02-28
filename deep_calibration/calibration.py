@@ -1,5 +1,5 @@
 import numpy as np
-from kinematics import Kinematics
+from deep_calibration.kinematics import Kinematics
 import math
 
 class Calibration():
