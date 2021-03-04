@@ -1,0 +1,3 @@
+[console_scripts]
+deep-calibration = deep_calibration.__main__:main
+

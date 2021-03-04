@@ -12,5 +12,10 @@ setup(
     version='0.1.0',
     packages=find_packages(include=['deep_calibration', 
     								'deep_simulation']),
+    entry_points={
+        "console_scripts": [
+            "deep-calibration = deep_calibration.__main__:main",
+        ],
+    },
     install_requires=load_requirements("requirements.txt")
 )

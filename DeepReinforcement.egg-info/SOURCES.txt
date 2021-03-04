@@ -3,11 +3,11 @@ setup.py
 DeepReinforcement.egg-info/PKG-INFO
 DeepReinforcement.egg-info/SOURCES.txt
 DeepReinforcement.egg-info/dependency_links.txt
+DeepReinforcement.egg-info/entry_points.txt
 DeepReinforcement.egg-info/requires.txt
 DeepReinforcement.egg-info/top_level.txt
 deep_calibration/__init__.py
-deep_calibration/calibration.py
-deep_calibration/kinematics.py
+deep_calibration/__main__.py
 deep_simulation/__init__.py
 deep_simulation/environment.py
 deep_simulation/test.py
