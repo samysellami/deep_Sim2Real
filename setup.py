@@ -8,7 +8,7 @@ def load_requirements(filename):
         return f.read().splitlines()
 
 setup(
-    name='DeepReinforcement',
+    name='Deep_Sim2Real',
     version='0.1.0',
     packages=find_packages(include=['deep_calibration', 
     								'deep_simulation']),
