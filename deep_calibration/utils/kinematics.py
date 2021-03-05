@@ -62,24 +62,30 @@ class Kinematics():
 		)	
 
 	def forward_kinematcis(self, q):
+		"""
+			Comutes the forward kinematics of the UR10 arm robot
+			:param q: (float) the joint angles
+			:return: (float) the cartesian position of the end effector
+		"""
 		a2 = self.DH[1,0]
 		a3 = self.DH[2,0]
 		d4 = self.DH[3,2]
 		d5 = self.DH[4,2]
 		d6 = self.DH[5,2]
+		
 		H_01 = multi_dot(
 			[self.Rz(q[0]), self.Tx(d4 + d6  + self.calib_prms['joint1']['p_x']), 
 			self.Ty(self.calib_prms['joint1']['p_y']), 
 			self.Ry(self.calib_prms['joint1']['phi_y'])]
 		)
-		
+
 		H_12 = multi_dot(
 			[self.Rx(q[1] + self.calib_prms['joint2']['delta']), 
 			self.Tz(a2 + self.calib_prms['joint2']['p_z']), 
 			self.Ry(self.calib_prms['joint2']['phi_y']), 
 			self.Rz(self.calib_prms['joint2']['phi_z'])]
 		)
-		
+
 		H_23 = multi_dot(
 			[self.Rx(q[2] + self.calib_prms['joint3']['delta']), 
 			self.Tz(a3 + self.calib_prms['joint3']['p_z']), 
@@ -99,11 +105,11 @@ class Kinematics():
 			self.Ty(self.calib_prms['joint5']['p_y']), 
 			self.Ry(self.calib_prms['joint5']['phi_y'])]
 		)
-		
+
 		H_56 = self.Rx(
 			q[5] + self.calib_prms['joint6']['delta']
 		)
-		
+
 		H_robot = multi_dot(
 			[H_01, H_12, H_23, H_34, H_45, H_56]
 		)

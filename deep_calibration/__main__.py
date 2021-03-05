@@ -12,6 +12,10 @@ COMMANDS = OrderedDict(
 )
 
 def build_parser() -> ArgumentParser:
+    """
+    Build the parser for the project 
+    :return: (parser) The created parser
+    """
     parser = ArgumentParser(
         description = "training calibration for UR10 arm"
     )

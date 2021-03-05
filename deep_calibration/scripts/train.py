@@ -20,6 +20,11 @@ def parse_args():
     return args, unknown_args
 
 def build_args(parser):
+    """
+        Build the parser arguments
+        :param parser: (parser) the parser to which the arguments are added
+        :return: (parser) The modified parser
+    """
     parser.add_argument(
         "--config","--configs",
         help = "config file name", type = str,
