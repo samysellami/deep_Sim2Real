@@ -11,8 +11,11 @@ from gym import Space
 from deep_calibration.utils.kinematics import Kinematics
 
 
-class CalibrationEnv(gym.Env):
-  # metadata = {'render.modes': ['human']}
+class CalibrationEnv(gym.Env): 
+  """
+    Gym environment for the deep calibration
+    :param q: ([float]) the initial joint position of the UR10 arm
+  """
 
   def __init__(self, q = np.array([0,0,0,0,0,0])):
     
@@ -51,10 +54,10 @@ class CalibrationEnv(gym.Env):
     self.setup_joints()
     return self.get_observation()
 
-  # def render(self, mode='human'):
-  #   ...
-  # def close(self):
-  #   ...
+  def render(self, mode='human'):
+    ...
+  def close(self):
+    ...
 
 # -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
 

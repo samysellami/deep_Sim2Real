@@ -14,9 +14,9 @@ then
   cd $pyrep_src
   pip install -r requirements.txt
   pip install .
-  cd -
-  cd $RL_src
-  pip install .
+  # cd -
+  # cd $RL_src
+  # pip install .
   cd -  
   pip install -e .
 fi

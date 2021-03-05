@@ -4,6 +4,11 @@ import math
 
 
 class Kinematics():
+	"""
+		Kinematics of the UR10 arm 
+		:param delta: ([float]) the initial delta calibration parameters of the UR10 arm
+		:param joints: ([float]) the initial joints calibration parameters of the UR10 arm
+	"""
 
 	def __init__(self, delta = [0,0,0,0,0], joints = np.zeros((5,3))):
 

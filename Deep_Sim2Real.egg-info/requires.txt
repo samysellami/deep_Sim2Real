@@ -1,4 +1,5 @@
 numpy>=1.16.4
 matplotlib
-tensorflow==1.14
+tensorflow>=1.14
 gym
+stable-baselines[mpi]
