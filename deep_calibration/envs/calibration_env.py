@@ -14,7 +14,7 @@ from deep_calibration.utils.kinematics import Kinematics
 class CalibrationEnv(gym.Env): 
   """
     Gym environment for the deep calibration
-    :param q: ([float]) the initial joint position of the UR10 arm
+    :param q: (np.ndarray) the initial joint position of the UR10 arm
   """
 
   def __init__(self, q = np.array([0,0,0,0,0,0])):
@@ -62,6 +62,11 @@ class CalibrationEnv(gym.Env):
 # -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
 
   def get_position(self, action = np.zeros(20)):
+    """
+      Return the end effector position
+      :param action: (np.ndarray) the calibration parameters 
+      :return: (np.ndarray) the position of the end effector
+    """
     self._delta = action[0:5]
     self._joints[0,:] = action[5:8]
     self._joints[1,:] = action[8:11]

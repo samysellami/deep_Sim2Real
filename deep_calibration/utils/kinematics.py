@@ -6,8 +6,8 @@ import math
 class Kinematics():
 	"""
 		Kinematics of the UR10 arm 
-		:param delta: ([float]) the initial delta calibration parameters of the UR10 arm
-		:param joints: ([float]) the initial joints calibration parameters of the UR10 arm
+		:param delta: (np.ndarray) the initial delta calibration parameters of the UR10 arm
+		:param joints: (np.ndarray) the initial joints calibration parameters of the UR10 arm
 	"""
 
 	def __init__(self, delta = [0,0,0,0,0], joints = np.zeros((5,3))):
@@ -64,8 +64,8 @@ class Kinematics():
 	def forward_kinematcis(self, q):
 		"""
 			Comutes the forward kinematics of the UR10 arm robot
-			:param q: (float) the joint angles
-			:return: (float) the cartesian position of the end effector
+			:param q: (np.ndarray) the joint angles
+			:return: (np.ndarray) the cartesian position of the end effector
 		"""
 		a2 = self.DH[1,0]
 		a3 = self.DH[2,0]
