@@ -10,7 +10,7 @@ class Kinematics():
 		:param joints: (np.ndarray) the initial joints calibration parameters of the UR10 arm
 	"""
 
-	def __init__(self, delta = [0,0,0,0,0], joints = np.zeros((5,3))):
+	def __init__(self, delta = [0,0,0,0,0], joints = np.zeros((5,3)), base = np.zeros(6)):
 
 		# DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
 		self.DH = np.array(
@@ -23,6 +23,7 @@ class Kinematics():
 		)
 		# calibration parameters   
 		self.calib_prms = { 
+			'base'  : {'p_x': base[0], 'p_y': base[1], 'p_z': base[2],'phi_x': base[3],'phi_y': base[4],'phi_z': base[5]},
 			'joint1': {'p_x': joints[0,0], 'p_y': joints[0,1], 'phi_y': joints[0,2]}, 
 			'joint2': {'delta': delta[0], 'p_z': joints[1,0], 'phi_y': joints[1,1], 'phi_z': joints[1,2]}, 
 			'joint3': {'delta': delta[1], 'p_z': joints[2,0], 'phi_y': joints[2,1], 'phi_z': joints[2,2]}, 
@@ -61,20 +62,31 @@ class Kinematics():
 			[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, z], [0, 0, 0, 1]]
 		)	
 
-	def forward_kinematcis(self, q):
+	def forward_kinematcis(self, q = np.array([0,0,0,0,0,0])):
 		"""
 			Comutes the forward kinematics of the UR10 arm robot
 			:param q: (np.ndarray) the joint angles
 			:return: (np.ndarray) the cartesian position of the end effector
 		"""
+		d1 = self.DH[0,2]
 		a2 = self.DH[1,0]
 		a3 = self.DH[2,0]
 		d4 = self.DH[3,2]
 		d5 = self.DH[4,2]
 		d6 = self.DH[5,2]
 		
+		H_base = multi_dot(
+			[self.Tx(self.calib_prms['base']['p_x']),
+			self.Ty(self.calib_prms['base']['p_y']),
+			self.Tz(d1 + self.calib_prms['base']['p_z']),
+			self.Rx(self.calib_prms['base']['phi_x']),  
+			self.Ry(self.calib_prms['base']['phi_y']),
+			self.Rz(self.calib_prms['base']['phi_z'])]
+		)
+
 		H_01 = multi_dot(
-			[self.Rz(q[0]), self.Tx(d4 + d6  + self.calib_prms['joint1']['p_x']), 
+			[self.Rz(q[0]), 
+			self.Tx(d4 + d6  + self.calib_prms['joint1']['p_x']), 
 			self.Ty(self.calib_prms['joint1']['p_y']), 
 			self.Ry(self.calib_prms['joint1']['phi_y'])]
 		)
@@ -98,7 +110,8 @@ class Kinematics():
 			self.Ty(self.calib_prms['joint4']['p_y']), 
 			self.Tz(d5 + self.calib_prms['joint4']['p_z']), 
 			self.Ry(self.calib_prms['joint4']['phi_y'])]
-		)		
+		)
+
 		H_45 = multi_dot(
 			[self.Rz(q[4] + self.calib_prms['joint5']['delta']), 
 			self.Tx(self.calib_prms['joint5']['p_x']), 
@@ -111,6 +124,6 @@ class Kinematics():
 		)
 
 		H_robot = multi_dot(
-			[H_01, H_12, H_23, H_34, H_45, H_56]
+			[H_base, H_01, H_12, H_23, H_34, H_45, H_56]
 		)
 		return H_robot[0:3, 3]

@@ -16,23 +16,26 @@ class CalibrationEnv(gym.Env):
     Gym environment for the deep calibration
     :param q: (np.ndarray) the initial joint position of the UR10 arm
   """
+  metadata = {'render.modes': ['human']}
 
   def __init__(self, q = np.array([0,0,0,0,0,0])):
     
     # action encodes the calibration parameters
-    self._action_space = spaces.Box(-0.1, 0.1, shape=(20,), dtype='float32')
+    self._action_space = spaces.Box(-0.1, 0.1, shape=(26,), dtype='float32')
     
     # observation encodes the x, y, z position of the end effector
     self._observation_space = spaces.Box(
-      np.array([0, 0, 0, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]),
-      np.array([1000, 1000, 1000, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]), 
+      np.array([-1500, -1500, 0, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]),
+      np.array([1500, 1500, 1500, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]), 
       dtype='float32'
     )
     self._q = q
     self._delta = np.zeros((1,5))
     self._joints = np.zeros((5,3))
+    self._base = np.zeros(6)
     self._goal = self.get_position()
     self._count = 0
+    self._reset = 1
 
   @property
   def observation_space(self) -> Space:
@@ -46,13 +49,19 @@ class CalibrationEnv(gym.Env):
     observation = self.get_observation(action)
     reward = - LA.norm(self.get_position(action) - self._goal)
     done = self.compute_done(reward)
-    return np.array(observation), reward, done, {}
+    info = {}
+    
+    return observation, reward, done, {}
 
   def reset(self):
     logging.info("Episode reset...")
     self.count = 0
-    self.setup_joints()
-    return self.get_observation()
+
+    if self._reset == 0:
+      self.setup_joints()
+    
+    observation = self.get_observation()
+    return observation
 
   def render(self, mode='human'):
     ...
@@ -61,7 +70,7 @@ class CalibrationEnv(gym.Env):
 
 # -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
 
-  def get_position(self, action = np.zeros(20)):
+  def get_position(self, action = np.zeros(26)):
     """
       Return the end effector position
       :param action: (np.ndarray) the calibration parameters 
@@ -72,12 +81,13 @@ class CalibrationEnv(gym.Env):
     self._joints[1,:] = action[8:11]
     self._joints[2,:] = action[11:14]
     self._joints[3,:] = action[14:17]
-    self._joints[4,:] = action[17:]
+    self._joints[4,:] = action[17:20]
+    self._base = action[20:]
 
-    FK = Kinematics(self._delta, self._joints)
+    FK = Kinematics(self._delta, self._joints, self._base)
     return FK.forward_kinematcis(self._q)
 
-  def get_observation(self, action = np.zeros(20)):
+  def get_observation(self, action = np.zeros(26)):
     pos = self.get_position(action)
     return np.hstack((pos,self._q)) 
   
@@ -102,4 +112,5 @@ class CalibrationEnv(gym.Env):
     elif -reward <0.001:
       logging.info('--------Reset: Convergence--------')
       done = True
+    
     return done
