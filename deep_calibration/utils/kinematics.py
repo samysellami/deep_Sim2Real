@@ -8,6 +8,7 @@ class Kinematics():
 		Kinematics of the UR10 arm 
 		:param delta: (np.ndarray) the initial delta calibration parameters of the UR10 arm
 		:param joints: (np.ndarray) the initial joints calibration parameters of the UR10 arm
+		:param joints: (np.ndarray) the initial base calibration parameters of the UR10 arm
 	"""
 
 	def __init__(self, delta = [0,0,0,0,0], joints = np.zeros((5,3)), base = np.zeros(6)):
