@@ -8,9 +8,9 @@ from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration import script_dir
 
 
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2
+from stable_baselines3.ppo.policies import MlpPolicy
+from stable_baselines3 import PPO
+from stable_baselines3.common.evaluation import evaluate_policy
 
 
 def parse_args():
@@ -51,16 +51,11 @@ def main(args, unknown_args):
     # the env is now wrapped automatically when passing it to the constructor
     # env = DummyVecEnv([lambda: env])
 
-    model = PPO2(MlpPolicy, env, verbose=1)
+    model = PPO(MlpPolicy, env, verbose=1)
     model.learn(total_timesteps=total_timesteps)
 
-    obs = env.reset()
-    for i in range(1000):
-        action, _states = model.predict(obs)
-        obs, rewards, dones, info = env.step(action)
-        env.render()
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
 
-    env.close()
 
 	
 if __name__ == "__main__":
