@@ -11,7 +11,8 @@ from deep_calibration import script_dir
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.monitor import Monitor
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -30,32 +31,57 @@ def build_args(parser):
         help = "config file name", type = str,
         metavar = "CONFIG_NAME", dest = "config", required = True
     )
-    parser.add_argument("--algo", type = str, default=None, help = "algorithm")
+    parser.add_argument(
+        "--algo", type = str, default=None, 
+        dest = "algo", help = "algorithm", required = True
+    )
     return parser
 
 
 def main(args, unknown_args):
 
+
     # path to the configuration file 
     path = os.path.join(script_dir,'configs', args.config)
     
-    config = configparser.ConfigParser()
-    config.read(path)
+    # parsing config file    
+    config_file = configparser.ConfigParser()
+    config_file.read(path)
+    total_timesteps = config_file.getint('ADAPT','total_timesteps')
+    env_name = config_file['ADAPT']['environment']
+    algo = args.algo
 
-    total_timesteps = config.getint('ADAPT','total_timesteps')
-    env_name = config['ADAPT']['environment']
+    # instanciating the environment
+    env = Monitor(gym.make(env_name))
+    env = DummyVecEnv([lambda: env])
 
+    if algo == 'PPO':
+        # creating the model and training
+        model = PPO(MlpPolicy, env, verbose=1)
+    else:
+        raise NotImplementedError('the algo specified is has not been recognized !!')
 
-    env = gym.make(env_name)
-    # Optional: PPO2 requires a vectorized environment to run
-    # the env is now wrapped automatically when passing it to the constructor
-    # env = DummyVecEnv([lambda: env])
+    # Create save dir
+    save_dir = os.path.join(script_dir,'saved_models', args.algo)
+    os.makedirs(save_dir, exist_ok=True)
+    
 
-    model = PPO(MlpPolicy, env, verbose=1)
     model.learn(total_timesteps=total_timesteps)
+    # mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
+    # The model will be saved under PPO.zip
+    model.save(save_dir + '/' + args.algo)
 
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
+    # sample an observation from the environment
+    # obs = model.env.observation_space.sample()
+    obs = model.env.reset()
 
+    # Check prediction before saving
+    print("pre saved", model.predict(obs, deterministic=True))
+
+    del model # delete trained model to demonstrate loading
+    loaded_model = PPO.load(save_dir + '/' + args.algo)
+    # Check that the prediction is the same after loading (for the same observation)
+    print("loaded", loaded_model.predict(obs, deterministic=True))
 
 	
 if __name__ == "__main__":
