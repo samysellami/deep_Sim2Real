@@ -2,6 +2,7 @@ numpy>=1.16.4
 matplotlib
 tensorflow==1.14.0
 gym
+tqdm
 stable-baselines3[extra]
 #stable-baselines[mpi]
 # catalyst

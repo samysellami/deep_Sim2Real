@@ -6,13 +6,17 @@ import gym
 
 from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration import script_dir
-
-
+from deep_calibration.scripts.callbacks import SaveOnBestTrainingRewardCallback
+from deep_calibration.scripts.callbacks import PlottingCallback
+from deep_calibration.scripts.callbacks import ProgressBarManager, ProgressBarCallback
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.env_util import make_vec_env
+
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -39,50 +43,54 @@ def build_args(parser):
 
 
 def main(args, unknown_args):
-
-
+    
+    # parsing config file and the args parser    
     # path to the configuration file 
     path = os.path.join(script_dir,'configs', args.config)
-    
-    # parsing config file    
     config_file = configparser.ConfigParser()
     config_file.read(path)
     total_timesteps = config_file.getint('ADAPT','total_timesteps')
     env_name = config_file['ADAPT']['environment']
     algo = args.algo
 
-    # instanciating the environment
-    env = Monitor(gym.make(env_name))
-    env = DummyVecEnv([lambda: env])
+    # Create saving directory
+    log_dir = os.path.join(script_dir,'saved_models', args.algo)
+    os.makedirs(log_dir, exist_ok = True)
+
+    # Create and wrap the environment
+    env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_dir)
+    # equivalent to:
+    # env = Monitor(gym.make(env_name), log_dir)
+    # env = DummyVecEnv([lambda: env])    
 
     if algo == 'PPO':
         # creating the model and training
-        model = PPO(MlpPolicy, env, verbose=1)
+        model = PPO(MlpPolicy, env, verbose = 1)
     else:
         raise NotImplementedError('the algo specified is has not been recognized !!')
 
-    # Create save dir
-    save_dir = os.path.join(script_dir,'saved_models', args.algo)
-    os.makedirs(save_dir, exist_ok=True)
-    
 
-    model.learn(total_timesteps=total_timesteps)
+    # Create Callbacks and train the model
+    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 20, log_dir = log_dir, verbose = 0)
+    plotting_callback = PlottingCallback(log_dir = log_dir)
+    
+    # model.learn(total_timesteps = total_timesteps, callback = plotting_callback)
     # mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
+    
+    with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
+        model.learn(total_timesteps = total_timesteps, callback = [auto_save_callback, progress_callback, plotting_callback])
+
     # The model will be saved under PPO.zip
-    model.save(save_dir + '/' + args.algo)
+    model.save(log_dir + '/' + args.algo)
 
     # sample an observation from the environment
-    # obs = model.env.observation_space.sample()
     obs = model.env.reset()
-
-    # Check prediction before saving
-    print("pre saved", model.predict(obs, deterministic=True))
-
-    del model # delete trained model to demonstrate loading
-    loaded_model = PPO.load(save_dir + '/' + args.algo)
+    best_model = PPO.load(log_dir + '/best_model')
+    
     # Check that the prediction is the same after loading (for the same observation)
-    print("loaded", loaded_model.predict(obs, deterministic=True))
-
+    action = best_model.predict(obs, deterministic = True)
+    print("best model prediction: ", action)
+    # print('best end effector position:', model.env.get_position(action))
 	
 if __name__ == "__main__":
     args, unknown_args = parse_args()

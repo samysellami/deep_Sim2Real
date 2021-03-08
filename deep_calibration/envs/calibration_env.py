@@ -34,8 +34,8 @@ class CalibrationEnv(gym.Env):
     self._joints = np.zeros((5,3))
     self._base = np.zeros(6)
     self._goal = self.get_position()
-    self._count = 0
-    self._reset = 1
+    self._count = 0 # total time_steps
+    self._reset = 1 # reset the environment from the initial joint position
 
   @property
   def observation_space(self) -> Space:
@@ -50,17 +50,16 @@ class CalibrationEnv(gym.Env):
     reward = - LA.norm(self.get_position(action) - self._goal)
     done = self.compute_done(reward)
     info = {}
-    
+
     return observation, reward, done, {}
 
   def reset(self):
     logging.info("Episode reset...")
     self.count = 0
-
     if self._reset == 0:
-      self.setup_joints()
-    
+      self.setup_joints()  
     observation = self.get_observation()
+    
     return observation
 
   def render(self, mode='human'):
@@ -106,11 +105,14 @@ class CalibrationEnv(gym.Env):
     self._count = self._count + 1
     done = False 
     
-    if self._count == 1000:
+    if self._count == 100000:
       logging.info('--------Reset: Timeout--------')
       done = True
-    elif -reward <0.001:
-      logging.info('--------Reset: Convergence--------')
+    # elif -reward <0.001:
+    #   logging.info('--------Reset: Convergence--------')
+    #   done = True
+    elif -reward > 100:
+      logging.info('--------Reset: Divergence--------')
       done = True
     
     return done
