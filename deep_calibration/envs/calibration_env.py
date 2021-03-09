@@ -20,19 +20,26 @@ class CalibrationEnv(gym.Env):
 
   def __init__(self, q = np.array([0,0,0,0,0,0])):
     
-    # action encodes the calibration parameters
-    self._action_space = spaces.Box(-0.1, 0.1, shape=(26,), dtype='float32')
-    
-    # observation encodes the x, y, z position of the end effector
+    # action encodes the calibration parameters (positional and rotational)
+    self._action_space = spaces.Dict({
+      'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
+      'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
+    })
+
+    # the observation encodes the x, y, z position of the end effector and the joint angles
     self._observation_space = spaces.Box(
-      np.array([-1500, -1500, 0, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]),
-      np.array([1500, 1500, 1500, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]), 
+      np.array(
+        [-1500, -1500, 0, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]
+      ),
+      np.array(
+        [1500, 1500, 1500, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]
+      ), 
       dtype='float32'
     )
     self._q = q
-    self._delta = np.zeros((1,5))
-    self._joints = np.zeros((5,3))
-    self._base = np.zeros(6)
+    self._delta = np.zeros(5)
+    self._p_x = np.zeros(3); self._p_y = np.zeros(4); self._p_z = np.zeros(4) 
+    self._phi_x = np.zeros(1); self._phi_y = np.zeros(6); self._phi_z = np.zeros(3)    
     self._goal = self.get_position()
     self._count = 0 # total time_steps
     self._reset = 1 # reset the environment from the initial joint position
@@ -50,7 +57,6 @@ class CalibrationEnv(gym.Env):
     reward = - LA.norm(self.get_position(action) - self._goal)
     done = self.compute_done(reward)
     info = {}
-
     return observation, reward, done, {}
 
   def reset(self):
@@ -59,7 +65,6 @@ class CalibrationEnv(gym.Env):
     if self._reset == 0:
       self.setup_joints()  
     observation = self.get_observation()
-    
     return observation
 
   def render(self, mode='human'):
@@ -69,28 +74,39 @@ class CalibrationEnv(gym.Env):
 
 # -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
 
-  def get_position(self, action = np.zeros(26)):
+  def get_position(self, action = {'position': np.zeros(11), 'orientation': np.zeros(15)}):
     """
       Return the end effector position
       :param action: (np.ndarray) the calibration parameters 
       :return: (np.ndarray) the position of the end effector
     """
-    self._delta = action[0:5]
-    self._joints[0,:] = action[5:8]
-    self._joints[1,:] = action[8:11]
-    self._joints[2,:] = action[11:14]
-    self._joints[3,:] = action[14:17]
-    self._joints[4,:] = action[17:20]
-    self._base = action[20:]
-
-    FK = Kinematics(self._delta, self._joints, self._base)
+    self._p_x = action['position'][0:3]
+    self._p_y = action['position'][3:7] 
+    self.p_z = action['position'][7:] 
+    self._delta = action['orientation'][0:5]
+    self._phi_x = action['orientation'][5:6] 
+    self._phi_y = action['orientation'][6:12] 
+    self._phi_z = action['orientation'][12:] 
+    
+    FK = Kinematics(
+      delta = self._delta, p_x = self._p_x, p_y = self._p_y, p_z = self._p_z, 
+      phi_x = self._phi_x, phi_y = self._phi_y, phi_z = self._phi_z
+    )
     return FK.forward_kinematcis(self._q)
 
-  def get_observation(self, action = np.zeros(26)):
+  def get_observation(self, action = {'position': np.zeros(11), 'orientation': np.zeros(15)}):
+    """
+      Return the environment observation
+      :param action: (np.ndarray) the calibration parameters 
+      :return: (np.ndarray) the environment observation
+    """
     pos = self.get_position(action)
     return np.hstack((pos,self._q)) 
   
   def setup_joints(self):
+    """
+      pertubate the joint angles for the reset function
+    """
     step_limit = math.pi/10
     self._q = np.array(
         [self._q[0] + (2 * np.random.rand() - 1.) * step_limit,
@@ -102,6 +118,11 @@ class CalibrationEnv(gym.Env):
     )
 
   def compute_done(self, reward):
+    """
+      Compute the done boolean for the step function
+      :param reward: (float) the reward of the given step 
+      :return: (float) the done flag
+    """
     self._count = self._count + 1
     done = False 
     
@@ -114,5 +135,4 @@ class CalibrationEnv(gym.Env):
     elif -reward > 100:
       logging.info('--------Reset: Divergence--------')
       done = True
-    
     return done

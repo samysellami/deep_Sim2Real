@@ -11,8 +11,11 @@ class Kinematics():
 		:param joints: (np.ndarray) the initial base calibration parameters of the UR10 arm
 	"""
 
-	def __init__(self, delta = [0,0,0,0,0], joints = np.zeros((5,3)), base = np.zeros(6)):
-
+	def __init__(
+		self, delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
+		phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
+		):  
+		
 		# DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
 		self.DH = np.array(
 			[[0, -math.pi/2, 128, 0], 
@@ -24,12 +27,12 @@ class Kinematics():
 		)
 		# calibration parameters   
 		self.calib_prms = { 
-			'base'  : {'p_x': base[0], 'p_y': base[1], 'p_z': base[2],'phi_x': base[3],'phi_y': base[4],'phi_z': base[5]},
-			'joint1': {'p_x': joints[0,0], 'p_y': joints[0,1], 'phi_y': joints[0,2]}, 
-			'joint2': {'delta': delta[0], 'p_z': joints[1,0], 'phi_y': joints[1,1], 'phi_z': joints[1,2]}, 
-			'joint3': {'delta': delta[1], 'p_z': joints[2,0], 'phi_y': joints[2,1], 'phi_z': joints[2,2]}, 
-			'joint4': {'delta': delta[2], 'p_y': joints[3,0], 'p_z': joints[3,1], 'phi_y': joints[3,2]}, 
-			'joint5': {'delta': delta[3], 'p_x': joints[4,0], 'p_y': joints[4,1], 'phi_y': joints[4,2]}, 
+			'base'  : {'p_x': p_x[0], 'p_y': p_y[0], 'p_z': p_z[0],'phi_x': phi_x[0],'phi_y': phi_y[0],'phi_z': phi_z[0]},
+			'joint1': {'p_x': p_x[1], 'p_y': p_y[1], 'phi_y': phi_y[1]}, 
+			'joint2': {'delta': delta[0], 'p_z': p_z[1], 'phi_y': phi_y[2], 'phi_z': phi_z[1]}, 
+			'joint3': {'delta': delta[1], 'p_z': p_z[2], 'phi_y': phi_y[3], 'phi_z': phi_z[2]}, 
+			'joint4': {'delta': delta[2], 'p_y': p_y[2], 'p_z': p_z[3], 'phi_y': phi_y[4]}, 
+			'joint5': {'delta': delta[3], 'p_x': p_x[2], 'p_y': p_y[3], 'phi_y': phi_y[5]}, 
 			'joint6': {'delta': delta[4]},
 		}
 		
