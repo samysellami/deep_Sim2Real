@@ -21,10 +21,23 @@ class CalibrationEnv(gym.Env):
   def __init__(self, q = np.array([0,0,0,0,0,0])):
     
     # action encodes the calibration parameters (positional and rotational)
-    self._action_space = spaces.Dict({
-      'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
-      'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
-    })
+    # self._action_space = spaces.Dict({
+    #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
+    #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
+    # })
+    pos = 0.5
+    ori = 0.03 
+    self._action_space = spaces.Box(
+      np.array(
+        [-pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos,
+        -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori]
+      ),
+      np.array(
+        [pos, pos, pos, pos, pos, pos, pos, pos, pos, pos, pos,
+        ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori]
+      ),
+      dtype='float32'
+    )
 
     # the observation encodes the x, y, z position of the end effector and the joint angles
     self._observation_space = spaces.Box(
@@ -74,19 +87,19 @@ class CalibrationEnv(gym.Env):
 
 # -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
 
-  def get_position(self, action = {'position': np.zeros(11), 'orientation': np.zeros(15)}):
+  def get_position(self, action = np.zeros(26) ):
     """
       Return the end effector position
       :param action: (np.ndarray) the calibration parameters 
       :return: (np.ndarray) the position of the end effector
     """
-    self._p_x = action['position'][0:3]
-    self._p_y = action['position'][3:7] 
-    self.p_z = action['position'][7:] 
-    self._delta = action['orientation'][0:5]
-    self._phi_x = action['orientation'][5:6] 
-    self._phi_y = action['orientation'][6:12] 
-    self._phi_z = action['orientation'][12:] 
+    self._p_x = action[0:3]
+    self._p_y = action[3:7] 
+    self.p_z = action[7:11] 
+    self._delta = action[11:16]
+    self._phi_x = action[16:17] 
+    self._phi_y = action[17:23] 
+    self._phi_z = action[23:] 
     
     FK = Kinematics(
       delta = self._delta, p_x = self._p_x, p_y = self._p_y, p_z = self._p_z, 
@@ -94,7 +107,7 @@ class CalibrationEnv(gym.Env):
     )
     return FK.forward_kinematcis(self._q)
 
-  def get_observation(self, action = {'position': np.zeros(11), 'orientation': np.zeros(15)}):
+  def get_observation(self, action = np.zeros(26) ):
     """
       Return the environment observation
       :param action: (np.ndarray) the calibration parameters 

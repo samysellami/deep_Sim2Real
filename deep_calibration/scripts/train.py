@@ -78,7 +78,7 @@ def main(args, unknown_args):
     # mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
     
     with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
-        model.learn(total_timesteps = total_timesteps, callback = [auto_save_callback, progress_callback, plotting_callback])
+        model.learn(total_timesteps = total_timesteps, callback = [auto_save_callback, progress_callback])
 
     # The model will be saved under PPO.zip
     model.save(log_dir + '/' + args.algo)
@@ -90,7 +90,7 @@ def main(args, unknown_args):
     # Check that the prediction is the same after loading (for the same observation)
     action = best_model.predict(obs, deterministic = True)
     print("best model prediction: ", action)
-    # print('best end effector position:', model.env.get_position(action))
+    # print('best end effector position:', model.env.get_episode_rewards())
 	
 if __name__ == "__main__":
     args, unknown_args = parse_args()
