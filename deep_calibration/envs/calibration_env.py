@@ -25,8 +25,8 @@ class CalibrationEnv(gym.Env):
     #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
     #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
     # })
-    pos = 0.5
-    ori = 0.03 
+    pos = 0.1
+    ori = 0.01 
     self._action_space = spaces.Box(
       np.array(
         [-pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos,
@@ -53,9 +53,10 @@ class CalibrationEnv(gym.Env):
     self._delta = np.zeros(5)
     self._p_x = np.zeros(3); self._p_y = np.zeros(4); self._p_z = np.zeros(4) 
     self._phi_x = np.zeros(1); self._phi_y = np.zeros(6); self._phi_z = np.zeros(3)    
-    self._goal = self.get_position()
     self._count = 0 # total time_steps
     self._reset = 1 # reset the environment from the initial joint position
+    self._goal_pos = self.get_position()
+    self._prev_distance = None
 
   @property
   def observation_space(self) -> Space:
@@ -66,14 +67,19 @@ class CalibrationEnv(gym.Env):
       return self._action_space
 
   def step(self, action):
+    if self._prev_distance is None:
+      self._prev_distance = self.distance_to_goal(action)
+
     observation = self.get_observation(action)
-    reward = - LA.norm(self.get_position(action) - self._goal)
-    done = self.compute_done(reward)
+    reward = self.compute_reward(action) 
+    self._prev_distance = self.distance_to_goal(action)
+    
+    done = self.compute_done()
     info = {}
     return observation, reward, done, {}
 
   def reset(self):
-    logging.info("Episode reset...")
+    print('--------Episode reset--------')
     self.count = 0
     if self._reset == 0:
       self.setup_joints()  
@@ -87,6 +93,20 @@ class CalibrationEnv(gym.Env):
 
 # -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
 
+  def setup_joints(self):
+    """
+      pertubate the joint angles for the reset function
+    """
+    step_limit = math.pi/20
+    self._q = np.array([
+        self._q[0] + (2 * np.random.rand() - 1.) * step_limit,
+        self._q[1] + (2 * np.random.rand() - 1.) * step_limit,
+        self._q[2] + (2 * np.random.rand() - 1.) * step_limit,
+        self._q[3] + (2 * np.random.rand() - 1.) * step_limit,
+        self._q[4] + (2 * np.random.rand() - 1.) * step_limit,
+        self._q[5] + (2 * np.random.rand() - 1.) * step_limit
+    ])
+
   def get_position(self, action = np.zeros(26) ):
     """
       Return the end effector position
@@ -95,7 +115,7 @@ class CalibrationEnv(gym.Env):
     """
     self._p_x = action[0:3]
     self._p_y = action[3:7] 
-    self.p_z = action[7:11] 
+    self._p_z = action[7:11] 
     self._delta = action[11:16]
     self._phi_x = action[16:17] 
     self._phi_y = action[17:23] 
@@ -116,36 +136,35 @@ class CalibrationEnv(gym.Env):
     pos = self.get_position(action)
     return np.hstack((pos,self._q)) 
   
-  def setup_joints(self):
-    """
-      pertubate the joint angles for the reset function
-    """
-    step_limit = math.pi/10
-    self._q = np.array(
-        [self._q[0] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[1] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[2] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[3] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[4] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[5] + (2 * np.random.rand() - 1.) * step_limit]
-    )
 
-  def compute_done(self, reward):
+  def distance_to_goal(self, action = np.zeros(26)):
+    """
+      Compute the distance to the goal
+      :param action: (np.ndarray) the calibration parameters 
+    """
+    return LA.norm(self.get_position(action) - self._goal_pos)
+
+  def compute_reward(self, action = np.zeros(26)):
+    """
+      Compute the reward value for the step function
+      :param action: (np.ndarray) the calibration parameters 
+    """
+    dist_goal = self.distance_to_goal(action)
+    reward = (self._prev_distance - dist_goal) / self._prev_distance + 1/dist_goal
+    return reward
+  
+  def compute_done(self):
     """
       Compute the done boolean for the step function
       :param reward: (float) the reward of the given step 
       :return: (float) the done flag
     """
-    self._count = self._count + 1
-    done = False 
-    
-    if self._count == 100000:
-      logging.info('--------Reset: Timeout--------')
+    self._count += 1
+    done = False   
+    if self._count == 100:
+      print('--------Reset: Timeout--------')
       done = True
-    # elif -reward <0.001:
-    #   logging.info('--------Reset: Convergence--------')
-    #   done = True
-    elif -reward > 100:
-      logging.info('--------Reset: Divergence--------')
+    if self._prev_distance > 100:
+      print('--------Reset: Divergence--------')
       done = True
     return done
