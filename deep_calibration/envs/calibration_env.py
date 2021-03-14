@@ -18,7 +18,8 @@ class CalibrationEnv(gym.Env):
   """
   metadata = {'render.modes': ['human']}
 
-  def __init__(self, q = np.array([0,0,0,0,0,0])):
+  def __init__(self, q = np.array([0,0,0,0,0,0]), delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
+    phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)):
     
     # action encodes the calibration parameters (positional and rotational)
     # self._action_space = spaces.Dict({
@@ -49,6 +50,11 @@ class CalibrationEnv(gym.Env):
       ), 
       dtype='float32'
     )
+    self._default_action = np.zeros(26)
+    self._default_action = self.get_default_action(
+        delta = delta, p_x = p_x, p_y = p_y, p_z = p_z, 
+        phi_x = phi_x, phi_y = phi_y, phi_z = phi_z
+    )
     self._q = q
     self._delta = np.zeros(5)
     self._p_x = np.zeros(3); self._p_y = np.zeros(4); self._p_z = np.zeros(4) 
@@ -66,6 +72,8 @@ class CalibrationEnv(gym.Env):
   def action_space(self) -> Space:
       return self._action_space
 
+# -------------- Gym specific methods  ---------------------
+
   def step(self, action):
     if self._prev_distance is None:
       self._prev_distance = self.distance_to_goal(action)
@@ -79,8 +87,9 @@ class CalibrationEnv(gym.Env):
     return observation, reward, done, {}
 
   def reset(self):
-    print('--------Episode reset--------')
-    self.count = 0
+    # print('--------Episode reset--------')
+    self._count = 0
+    self._prev_distance  = None
     if self._reset == 0:
       self.setup_joints()  
     observation = self.get_observation()
@@ -91,7 +100,7 @@ class CalibrationEnv(gym.Env):
   def close(self):
     ...
 
-# -------------- all the methods above are required for any Gym environment, everything below is env-specific --------------
+# --------------  env-specific methods ---------------------
 
   def setup_joints(self):
     """
@@ -107,12 +116,28 @@ class CalibrationEnv(gym.Env):
         self._q[5] + (2 * np.random.rand() - 1.) * step_limit
     ])
 
-  def get_position(self, action = np.zeros(26) ):
+  def get_default_action(self, delta, p_x, p_y, p_z, 
+                            phi_x, phi_y, phi_z):
+    action = np.zeros(26)
+    action[0:3] = p_x  
+    action[3:7] = p_y   
+    action[7:11] = p_z   
+    action[11:16] = delta 
+    action[16:17] = phi_x 
+    action[17:23] = phi_y  
+    action[23:] = phi_z  
+    return action
+
+
+  def get_position(self, action = None):
     """
       Return the end effector position
       :param action: (np.ndarray) the calibration parameters 
       :return: (np.ndarray) the position of the end effector
     """
+    if action is None:
+      action = self._default_action
+
     self._p_x = action[0:3]
     self._p_y = action[3:7] 
     self._p_z = action[7:11] 
@@ -127,30 +152,38 @@ class CalibrationEnv(gym.Env):
     )
     return FK.forward_kinematcis(self._q)
 
-  def get_observation(self, action = np.zeros(26) ):
+  def get_observation(self, action = None):
     """
       Return the environment observation
       :param action: (np.ndarray) the calibration parameters 
       :return: (np.ndarray) the environment observation
     """
+    if action is None:
+      action = self._default_action
+
     pos = self.get_position(action)
     return np.hstack((pos,self._q)) 
   
 
-  def distance_to_goal(self, action = np.zeros(26)):
+  def distance_to_goal(self, action):
     """
       Compute the distance to the goal
       :param action: (np.ndarray) the calibration parameters 
     """
     return LA.norm(self.get_position(action) - self._goal_pos)
 
-  def compute_reward(self, action = np.zeros(26)):
+  def compute_reward(self, action):
     """
       Compute the reward value for the step function
       :param action: (np.ndarray) the calibration parameters 
     """
+    if self._prev_distance is None:
+      self._prev_distance = self.distance_to_goal(action)
+    
     dist_goal = self.distance_to_goal(action)
     reward = (self._prev_distance - dist_goal) / self._prev_distance + 1/dist_goal
+    if math.isnan(reward):
+      reward = 1000
     return reward
   
   def compute_done(self):
@@ -161,10 +194,10 @@ class CalibrationEnv(gym.Env):
     """
     self._count += 1
     done = False   
-    if self._count == 100:
-      print('--------Reset: Timeout--------')
+    if self._count >= 100:  
+      # print('--------Reset: Timeout--------')
       done = True
-    if self._prev_distance > 100:
-      print('--------Reset: Divergence--------')
+    if self._prev_distance > 50:
+      # print('--------Reset: Divergence--------')
       done = True
     return done

@@ -16,10 +16,9 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.ppo.policies import MlpPolicy
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_util import make_vec_env
-
+from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
 
 
 def parse_args():
@@ -62,12 +61,13 @@ def main(args, unknown_args):
     os.makedirs(log_dir, exist_ok = True)
 
     # Create and wrap the environment
-    eval_env = gym.make(env_name) # not wrapped environment
     # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_dir)
+    eval_env = gym.make(env_name) # not wrapped environment
     env = Monitor(eval_env, log_dir)
-    env = NormalizeActionWrapper(env)
     env = DummyVecEnv([lambda: env])
-    
+    eval_env = Monitor(eval_env, log_dir)
+    # env = NormalizeActionWrapper(env)
+
     if algo == 'PPO':
         # creating the model and training
         model = PPO(MlpPolicy, env, verbose = 1)
@@ -75,25 +75,34 @@ def main(args, unknown_args):
         raise NotImplementedError('the algo specified is has not been recognized !!')
 
     # Create Callbacks and train the model
-    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 20, log_dir = log_dir, verbose = 0)
+    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
     plotting_callback = PlottingCallback(log_dir = log_dir)
     eval_callback = EvalCallback(eval_env, best_model_save_path = log_dir,
-                                log_path = log_dir, eval_freq = 500, n_eval_episodes = 1,
+                                log_path = log_dir, eval_freq = 1, n_eval_episodes = 1,
                                 deterministic = True, render = False, verbose = 1)
-    
-    with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
-        model.learn(total_timesteps = total_timesteps, callback = [auto_save_callback, progress_callback])
 
-    # sample an observation from the environment
-    obs = model.env.reset()
-    
+    with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
+        model.learn(total_timesteps = total_timesteps, callback = [eval_callback, progress_callback])
+    del model
+
+
     # get the best predition from the best model
     best_model = PPO.load(log_dir + '/best_model')  
+
+    # sample an observation from the environment and compute the action
+    obs = eval_env.reset()
     action = best_model.predict(obs, deterministic = True)[0]
-    action = action[0,:]
     print("best calibration parameters: ", action)
     print('best distance to goal: ', eval_env.distance_to_goal(action))
-    # mean_reward, std_reward = evaluate_policy(best_model, eval_env, n_eval_episodes=10)
+
+    mean_reward, std_reward = evaluate_policy(
+        best_model,
+        eval_env,
+        n_eval_episodes = 1,
+        render = False,
+        deterministic = True,
+    )
+    print(f"mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
     
 	
 if __name__ == "__main__":
