@@ -11,8 +11,8 @@
 .coverage.*
 __pycache__/
 _build/
-*.npz
-*.zip
+# *.npz
+# *.zip
 
 # Setuptools distribution and build folders.
 /dist/
