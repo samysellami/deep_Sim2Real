@@ -194,10 +194,10 @@ class CalibrationEnv(gym.Env):
     """
     self._count += 1
     done = False   
-    if self._count >= 100:  
-      # print('--------Reset: Timeout--------')
+    if self._count >= 1000:  
+      print('--------Reset: Timeout--------')
       done = True
     if self._prev_distance > 50:
-      # print('--------Reset: Divergence--------')
+      print('--------Reset: Divergence--------')
       done = True
     return done
