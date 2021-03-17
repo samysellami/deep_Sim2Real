@@ -18,8 +18,11 @@ class CalibrationEnv(gym.Env):
   """
   metadata = {'render.modes': ['human']}
 
-  def __init__(self, q = np.array([0,0,0,0,0,0]), delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
-    phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)):
+  def __init__(
+    self, q = np.array([0,0,0,0,0,0]), delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
+    p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
+    phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
+  ):
     
     # action encodes the calibration parameters (positional and rotational)
     # self._action_space = spaces.Dict({
@@ -81,7 +84,6 @@ class CalibrationEnv(gym.Env):
     observation = self.get_observation(action)
     reward = self.compute_reward(action) 
     self._prev_distance = self.distance_to_goal(action)
-    
     done = self.compute_done()
     info = {}
     return observation, reward, done, {}
@@ -90,8 +92,11 @@ class CalibrationEnv(gym.Env):
     # print('--------Episode reset--------')
     self._count = 0
     self._prev_distance  = None
+
     if self._reset == 0:
       self.setup_joints()  
+      self._goal_pos = self.get_position()
+
     observation = self.get_observation()
     return observation
 
@@ -106,7 +111,7 @@ class CalibrationEnv(gym.Env):
     """
       pertubate the joint angles for the reset function
     """
-    step_limit = math.pi/20
+    step_limit = math.pi/50
     self._q = np.array([
         self._q[0] + (2 * np.random.rand() - 1.) * step_limit,
         self._q[1] + (2 * np.random.rand() - 1.) * step_limit,
@@ -197,7 +202,7 @@ class CalibrationEnv(gym.Env):
     if self._count >= 1000:  
       print('--------Reset: Timeout--------')
       done = True
-    if self._prev_distance > 50:
+    if self._prev_distance > 100:
       print('--------Reset: Divergence--------')
       done = True
     return done

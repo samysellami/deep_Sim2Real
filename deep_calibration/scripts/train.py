@@ -3,6 +3,7 @@ import configparser
 import math
 import os
 import gym
+import json 
 
 from deep_calibration import script_dir
 from deep_calibration.utils.kinematics import Kinematics
@@ -15,9 +16,6 @@ from deep_calibration.scripts.wrappers import NormalizeActionWrapper, TimeLimitW
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
 from stable_baselines3 import TD3
-# from stable_baselines3.ppo.policies import MlpPolicy
-from stable_baselines3.sac.policies import MlpPolicy
-# from stable_baselines3.td3.policies import MlpPolicy
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
@@ -59,16 +57,23 @@ def main(args, unknown_args):
     config_file.read(path)
     total_timesteps = config_file.getint('ADAPT','total_timesteps')
     env_name = config_file['ADAPT']['environment']
+    batch_size = config_file.getint(args.algo, 'batch_size')        
+    net_arch = json.loads(config_file.get(args.algo, 'net_arch')) 
+    print(net_arch)
+    seed = config_file.getint(args.algo, 'seed')        
 
     # define the algorithm 
-    if args.algo == 'PPO':    
+    if args.algo == 'PPO':   
+        from stable_baselines3.ppo.policies import MlpPolicy
         algo = PPO
     elif args.algo == 'SAC':
+        from stable_baselines3.sac.policies import MlpPolicy
         algo = SAC
     elif args.algo == 'TD3':
+        from stable_baselines3.td3.policies import MlpPolicy
         algo = TD3
     else:
-        raise NotImplementedError('the algorithm specified is has not been recognized !!')
+        raise NotImplementedError('the algorithm specified has not been recognized !!')
 
     # Create the saving directory
     log_dir = os.path.join(script_dir,'saved_models', args.algo)
@@ -82,7 +87,13 @@ def main(args, unknown_args):
     # env = NormalizeActionWrapper(env)
 
     # create the model
-    model = algo(MlpPolicy, env, verbose = 1)
+    # model = algo(MlpPolicy, env, verbose = 1)
+    model = algo(
+            MlpPolicy, env, 
+            batch_size = batch_size, 
+            policy_kwargs = dict(net_arch = net_arch), 
+            seed = seed, verbose = 1, 
+        )
 
     # Create Callbacks and train the model
     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
