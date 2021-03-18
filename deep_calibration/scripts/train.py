@@ -99,7 +99,7 @@ def main(args, unknown_args):
     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
     plotting_callback = PlottingCallback(log_dir = log_dir)
     eval_callback = EvalCallback(eval_env, best_model_save_path = log_dir,
-                                log_path = log_dir, eval_freq = 10, n_eval_episodes = 1,
+                                log_path = log_dir, eval_freq = 10, n_eval_episodes = 3,
                                 deterministic = True, render = False, verbose = 0)
 
     with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
@@ -110,16 +110,17 @@ def main(args, unknown_args):
     best_model = algo.load(log_dir + '/best_model')  
 
     # sample an observation from the environment and compute the action
-    obs = eval_env.reset()
-    action = best_model.predict(obs, deterministic = True)[0]
-    print("best calibration parameters: ", action)
-    print('best distance to goal: ', eval_env.distance_to_goal(action))
+    for i in range(3):
+        obs = eval_env.reset()
+        action = best_model.predict(obs, deterministic = True)[0]
+        # print("best calibration parameters: ", action)
+        print('best distance to goal: ', eval_env.distance_to_goal(action))
 
     # evaluate the best policy
     mean_reward, std_reward = evaluate_policy(
         best_model,
         eval_env,
-        n_eval_episodes = 1,
+        n_eval_episodes = 3,
         render = False,
         deterministic = True,
     )

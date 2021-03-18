@@ -19,7 +19,12 @@ class CalibrationEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(
-    self, q = np.array([0,0,0,0,0,0]), delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
+    self, conifg = [
+      np.array([0,0,0,0,0,0]), 
+      np.array([0, math.pi/2,0,math.pi/2,0,math.pi/2]), 
+      np.array([math.pi/2,0,math.pi/2,0,math.pi/2,0])
+    ],  
+    delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
     p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
     phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
   ):
@@ -53,17 +58,19 @@ class CalibrationEnv(gym.Env):
       ), 
       dtype='float32'
     )
+    self._config = conifg
     self._default_action = np.zeros(26)
     self._default_action = self.get_default_action(
         delta = delta, p_x = p_x, p_y = p_y, p_z = p_z, 
         phi_x = phi_x, phi_y = phi_y, phi_z = phi_z
     )
-    self._q = q
+    self._q = conifg[0]
+    self._i = -1
     self._delta = np.zeros(5)
     self._p_x = np.zeros(3); self._p_y = np.zeros(4); self._p_z = np.zeros(4) 
     self._phi_x = np.zeros(1); self._phi_y = np.zeros(6); self._phi_z = np.zeros(3)    
     self._count = 0 # total time_steps
-    self._reset = 1 # reset the environment from the initial joint position
+    self._reset = 0 # reset the environment from the initial joint position
     self._goal_pos = self.get_position()
     self._prev_distance = None
 
@@ -107,22 +114,26 @@ class CalibrationEnv(gym.Env):
 
 # --------------  env-specific methods ---------------------
 
-  def setup_joints(self):
+  def setup_joints(self, rand = 0):
     """
       pertubate the joint angles for the reset function
     """
-    step_limit = math.pi/50
-    self._q = np.array([
-        self._q[0] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[1] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[2] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[3] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[4] + (2 * np.random.rand() - 1.) * step_limit,
-        self._q[5] + (2 * np.random.rand() - 1.) * step_limit
-    ])
+    self._i = (self._i + 1)  % len(self._config)
+    if rand ==0:
+      self._q = self._config[self._i]
+    else:
+      step_limit = math.pi/50
+      self._q = np.array([
+          self._q[0] + (2 * np.random.rand() - 1.) * step_limit,
+          self._q[1] + (2 * np.random.rand() - 1.) * step_limit,
+          self._q[2] + (2 * np.random.rand() - 1.) * step_limit,
+          self._q[3] + (2 * np.random.rand() - 1.) * step_limit,
+          self._q[4] + (2 * np.random.rand() - 1.) * step_limit,
+          self._q[5] + (2 * np.random.rand() - 1.) * step_limit
+      ])
 
   def get_default_action(self, delta, p_x, p_y, p_z, 
-                            phi_x, phi_y, phi_z):
+                        phi_x, phi_y, phi_z):
     action = np.zeros(26)
     action[0:3] = p_x  
     action[3:7] = p_y   
@@ -199,7 +210,7 @@ class CalibrationEnv(gym.Env):
     """
     self._count += 1
     done = False   
-    if self._count >= 1000:  
+    if self._count >= 5000:  
       print('--------Reset: Timeout--------')
       done = True
     if self._prev_distance > 100:
