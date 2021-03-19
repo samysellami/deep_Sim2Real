@@ -8,6 +8,7 @@ import json
 from deep_calibration import script_dir
 from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration.scripts.callbacks import SaveOnBestTrainingRewardCallback
+from deep_calibration.scripts.callbacks import EvalCallback
 from deep_calibration.scripts.callbacks import PlottingCallback
 from deep_calibration.scripts.callbacks import ProgressBarManager, ProgressBarCallback
 from deep_calibration.scripts.wrappers import NormalizeActionWrapper, TimeLimitWrapper
@@ -16,7 +17,7 @@ from deep_calibration.scripts.wrappers import NormalizeActionWrapper, TimeLimitW
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
 from stable_baselines3 import TD3
-from stable_baselines3.common.callbacks import EvalCallback
+# from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_util import make_vec_env
