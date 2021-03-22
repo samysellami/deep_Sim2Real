@@ -20,9 +20,16 @@ class CalibrationEnv(gym.Env):
 
   def __init__(
     self, conifg = [
-      np.array([0,0,0,0,0,0]), 
-      np.array([0, math.pi/2,0,math.pi/2,0,math.pi/2]), 
-      np.array([math.pi/2,0,math.pi/2,0,math.pi/2,0])
+      np.array([0 ,0 ,0 ,0 ,0 ,0]), 
+      np.array([0, math.pi/2, 0, math.pi/2, 0, math.pi/2]), 
+      np.array([math.pi/2, 0, math.pi/2, 0, math.pi/2, 0]),
+      np.array([0, math.pi/4, 0, math.pi/4, 0, math.pi/4]),
+      np.array([math.pi/4, 0, math.pi/4, 0, math.pi/4, 0]), 
+      np.array([0, math.pi/3, 0, math.pi/3, 0, math.pi/3]),
+      np.array([math.pi/3, 0, math.pi/3, 0, math.pi/3, 0]), 
+      np.array([0, math.pi/5, 0, math.pi/5, 0, math.pi/5]),
+      np.array([math.pi/5, 0, math.pi/5, 0, math.pi/5, 0]),
+      np.array([math.pi/6, 0, math.pi/6, 0, math.pi/6, 0]) 
     ],  
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
     p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
@@ -197,7 +204,7 @@ class CalibrationEnv(gym.Env):
       self._prev_distance = self.distance_to_goal(action)
     
     dist_goal = self.distance_to_goal(action)
-    reward = (self._prev_distance - dist_goal) / self._prev_distance + 1/dist_goal
+    reward = (self._prev_distance - dist_goal) / self._prev_distance + (100/dist_goal)
     if math.isnan(reward):
       reward = 1000
     return reward
@@ -210,7 +217,7 @@ class CalibrationEnv(gym.Env):
     """
     self._count += 1
     done = False   
-    if self._count >= 50:  
+    if self._count >= 100:  
       # print('--------Reset: Timeout--------')
       done = True
     if self._prev_distance > 100:

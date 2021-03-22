@@ -224,9 +224,10 @@ class EvalCallback(EventCallback):
             self.logger.record("eval/mean_reward", float(mean_reward))
             self.logger.record("eval/mean_ep_length", mean_ep_length)
 
-            dists = [1/reward for reward in episode_rewards]
+            dists = [100/reward for reward in episode_rewards]
             mean_dist = np.mean(dists)
             mean_reward = 1/mean_dist
+            self.last_mean_reward = mean_reward
 
             if mean_reward > self.best_mean_reward:
                 if self.verbose > 0:

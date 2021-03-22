@@ -12,13 +12,12 @@ from deep_calibration.scripts.callbacks import EvalCallback
 from deep_calibration.scripts.callbacks import PlottingCallback
 from deep_calibration.scripts.callbacks import ProgressBarManager, ProgressBarCallback
 from deep_calibration.scripts.wrappers import NormalizeActionWrapper, TimeLimitWrapper
+from deep_calibration.scripts.evaluation import evaluate_policy
 
 
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
 from stable_baselines3 import TD3
-# from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
@@ -60,7 +59,6 @@ def main(args, unknown_args):
     env_name = config_file['ADAPT']['environment']
     batch_size = config_file.getint(args.algo, 'batch_size')        
     net_arch = json.loads(config_file.get(args.algo, 'net_arch')) 
-    print(net_arch)
     seed = config_file.getint(args.algo, 'seed')        
 
     # define the algorithm 
@@ -100,7 +98,7 @@ def main(args, unknown_args):
     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
     plotting_callback = PlottingCallback(log_dir = log_dir)
     eval_callback = EvalCallback(eval_env, best_model_save_path = log_dir,
-                                log_path = log_dir, eval_freq = 10, n_eval_episodes = 3,
+                                log_path = log_dir, eval_freq = 10, n_eval_episodes = 10,
                                 deterministic = True, render = False, verbose = 0)
 
     with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
@@ -111,21 +109,26 @@ def main(args, unknown_args):
     best_model = algo.load(log_dir + '/best_model')  
 
     # sample an observation from the environment and compute the action
-    for i in range(3):
+    for i in range(10):
         obs = eval_env.reset()
         action = best_model.predict(obs, deterministic = True)[0]
         # print("best calibration parameters: ", action)
         print('best distance to goal: ', eval_env.distance_to_goal(action))
 
     # evaluate the best policy
-    mean_reward, std_reward = evaluate_policy(
+    episode_rewards, episode_lengths = evaluate_policy(
         best_model,
         eval_env,
-        n_eval_episodes = 3,
+        n_eval_episodes = 10,
         render = False,
         deterministic = True,
+        return_episode_rewards=True,
     )
-    print(f"mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
+
+    dists = [1/reward for reward in episode_rewards]
+    mean_dist = np.mean(dists)
+    mean_reward = 1/mean_dist
+    print(f"mean reward: {mean_reward:.2f}")
     
 	
 if __name__ == "__main__":
