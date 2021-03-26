@@ -60,7 +60,9 @@ def main(args, unknown_args):
     batch_size = config_file.getint(args.algo, 'batch_size')        
     net_arch = json.loads(config_file.get(args.algo, 'net_arch')) 
     seed = config_file.getint(args.algo, 'seed')        
+    n_eval_episodes = 10
 
+    
     # define the algorithm 
     if args.algo == 'PPO':   
         from stable_baselines3.ppo.policies import MlpPolicy
@@ -98,7 +100,7 @@ def main(args, unknown_args):
     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
     plotting_callback = PlottingCallback(log_dir = log_dir)
     eval_callback = EvalCallback(eval_env, best_model_save_path = log_dir,
-                                log_path = log_dir, eval_freq = 10, n_eval_episodes = 10,
+                                log_path = log_dir, eval_freq = 10, n_eval_episodes = n_eval_episodes,
                                 deterministic = True, render = False, verbose = 0)
 
     with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
@@ -109,26 +111,17 @@ def main(args, unknown_args):
     best_model = algo.load(log_dir + '/best_model')  
 
     # sample an observation from the environment and compute the action
-    for i in range(10):
+    dists = []
+    for i in range(n_eval_episodes):
         obs = eval_env.reset()
         action = best_model.predict(obs, deterministic = True)[0]
         # print("best calibration parameters: ", action)
-        print('best distance to goal: ', eval_env.distance_to_goal(action))
+        dist = eval_env.distance_to_goal(action)
+        print(f'best distance to goal for config {i} is  {eval_env.distance_to_goal(action)}')
+        dists.append(dist)
+   
+    print('best mean distance: ', np.mean(dists))
 
-    # evaluate the best policy
-    episode_rewards, episode_lengths = evaluate_policy(
-        best_model,
-        eval_env,
-        n_eval_episodes = 10,
-        render = False,
-        deterministic = True,
-        return_episode_rewards=True,
-    )
-
-    dists = [1/reward for reward in episode_rewards]
-    mean_dist = np.mean(dists)
-    mean_reward = 1/mean_dist
-    print(f"mean reward: {mean_reward:.2f}")
     
 	
 if __name__ == "__main__":

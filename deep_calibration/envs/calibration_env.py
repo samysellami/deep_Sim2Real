@@ -204,7 +204,7 @@ class CalibrationEnv(gym.Env):
       self._prev_distance = self.distance_to_goal(action)
     
     dist_goal = self.distance_to_goal(action)
-    reward = (self._prev_distance - dist_goal) / self._prev_distance + (100/dist_goal)
+    reward = (self._prev_distance - dist_goal) / self._prev_distance + (10/dist_goal**2)
     if math.isnan(reward):
       reward = 1000
     return reward
@@ -217,7 +217,7 @@ class CalibrationEnv(gym.Env):
     """
     self._count += 1
     done = False   
-    if self._count >= 100:  
+    if self._count >= 500:  
       # print('--------Reset: Timeout--------')
       done = True
     if self._prev_distance > 100:
