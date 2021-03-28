@@ -61,6 +61,7 @@ def main(args, unknown_args):
     net_arch = json.loads(config_file.get(args.algo, 'net_arch')) 
     seed = config_file.getint(args.algo, 'seed')        
     n_eval_episodes = 10
+    n_eval_test = 5
 
     
     # define the algorithm 
@@ -119,13 +120,26 @@ def main(args, unknown_args):
         action = eval_env.rescale_action(action)
 
         dist = eval_env.distance_to_goal(action)
-        print(f'best distance to goal for config {i} is  {eval_env.distance_to_goal(action)}')
+        print(f'best distance to goal for config {i} is  {dist}')
         dists.append(dist)
-        
-    print("best calibration parameters: ", action)   
+
+    # print("best calibration parameters: ", action)   
     print('best mean distance: ', np.mean(dists))
 
-    
+    # testing for random configurations
+    eval_env.rand = 1
+    dists = []
+    for i in range(n_eval_test):
+        obs = eval_env.reset()
+        action = best_model.predict(obs, deterministic = True)[0]
+        action = eval_env.rescale_action(action)
+
+        dist = eval_env.distance_to_goal(action)
+        print(f'best distance to goal for a random config {i} is  {dist}')
+        dists.append(dist)
+
+    print('best random mean distance: ', np.mean(dists))
+
 	
 if __name__ == "__main__":
     args, unknown_args = parse_args()

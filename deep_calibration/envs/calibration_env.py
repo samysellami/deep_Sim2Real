@@ -32,7 +32,7 @@ class CalibrationEnv(gym.Env):
       np.array([math.pi/6, 0, math.pi/6, 0, math.pi/6, 0]) 
     ],  
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
-    p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
+    p_x = np.array([0.05, -0.05, 0]), p_y = np.zeros(4), p_z = np.zeros(4), 
     phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
   ):
     
@@ -75,6 +75,7 @@ class CalibrationEnv(gym.Env):
     )
     self._q = conifg[0]
     self._i = -1
+    self.rand = 0
     self._delta = np.zeros(5)
     self._p_x = np.zeros(3); self._p_y = np.zeros(4); self._p_z = np.zeros(4) 
     self._phi_x = np.zeros(1); self._phi_y = np.zeros(6); self._phi_z = np.zeros(3)    
@@ -122,12 +123,12 @@ class CalibrationEnv(gym.Env):
 
 # --------------  env-specific methods ---------------------
 
-  def setup_joints(self, rand = 0):
+  def setup_joints(self):
     """
       pertubate the joint angles for the reset function
     """
     self._i = (self._i + 1)  % len(self._config)
-    if rand ==0:
+    if self.rand ==0:
       self._q = self._config[self._i]
     else:
       step_limit = math.pi/50
@@ -205,7 +206,7 @@ class CalibrationEnv(gym.Env):
       self._prev_distance = self.distance_to_goal(action)
     
     dist_goal = self.distance_to_goal(action)
-    reward = (self._prev_distance - dist_goal) / self._prev_distance + (1/dist_goal**2)
+    reward = (self._prev_distance - dist_goal) / self._prev_distance + (1/dist_goal)
     if math.isnan(reward):
       reward = 1000
     return reward
