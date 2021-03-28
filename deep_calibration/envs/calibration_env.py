@@ -41,22 +41,24 @@ class CalibrationEnv(gym.Env):
     #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
     #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
     # })
-    pos = 0.1
-    ori = 0.01 
-    self._action_space = spaces.Box(
+    self.pos = 0.1
+    self.ori = 0.01 
+    self.action_space = spaces.Box(
       np.array(
-        [-pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos, -pos,
-        -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori, -ori]
+        [-self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos,
+        -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, 
+        -self.ori, -self.ori, -self.ori, -self.ori]
       ),
       np.array(
-        [pos, pos, pos, pos, pos, pos, pos, pos, pos, pos, pos,
-        ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori, ori]
+        [self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos,
+        self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, 
+        self.ori, self.ori, self.ori, self.ori]
       ),
       dtype='float32'
     )
 
     # the observation encodes the x, y, z position of the end effector and the joint angles
-    self._observation_space = spaces.Box(
+    self.observation_space = spaces.Box(
       np.array(
         [-1500, -1500, 0, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]
       ),
@@ -81,26 +83,25 @@ class CalibrationEnv(gym.Env):
     self._goal_pos = self.get_position()
     self._prev_distance = None
 
-  @property
-  def observation_space(self) -> Space:
-      return self._observation_space
-
-  @property
-  def action_space(self) -> Space:
-      return self._action_space
 
 # -------------- Gym specific methods  ---------------------
 
   def step(self, action):
+    # print('--------Environment step--------')
+
     if self._prev_distance is None:
       self._prev_distance = self.distance_to_goal(action)
 
     observation = self.get_observation(action)
     reward = self.compute_reward(action) 
     self._prev_distance = self.distance_to_goal(action)
-    done = self.compute_done()
+    
+    done = self.compute_done(action)
     info = {}
     return observation, reward, done, {}
+
+
+
 
   def reset(self):
     # print('--------Episode reset--------')
@@ -204,12 +205,12 @@ class CalibrationEnv(gym.Env):
       self._prev_distance = self.distance_to_goal(action)
     
     dist_goal = self.distance_to_goal(action)
-    reward = (self._prev_distance - dist_goal) / self._prev_distance + (10/dist_goal**2)
+    reward = (self._prev_distance - dist_goal) / self._prev_distance + (1/dist_goal**2)
     if math.isnan(reward):
       reward = 1000
     return reward
   
-  def compute_done(self):
+  def compute_done(self, action):
     """
       Compute the done boolean for the step function
       :param reward: (float) the reward of the given step 
@@ -220,7 +221,7 @@ class CalibrationEnv(gym.Env):
     if self._count >= 500:  
       # print('--------Reset: Timeout--------')
       done = True
-    if self._prev_distance > 100:
+    if self.distance_to_goal(action) > 100:
       print('--------Reset: Divergence--------')
       done = True
     return done

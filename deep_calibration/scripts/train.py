@@ -83,18 +83,19 @@ def main(args, unknown_args):
     # Create and wrap the environment
     # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_dir)
     eval_env = Monitor(gym.make(env_name), log_dir)  
+    eval_env = NormalizeActionWrapper(eval_env)
     env = Monitor(gym.make(env_name), log_dir)
-    env = DummyVecEnv([lambda: env])
-    # env = NormalizeActionWrapper(env)
+    env = NormalizeActionWrapper(env)
+    # env = DummyVecEnv([lambda: env])
 
     # create the model
     # model = algo(MlpPolicy, env, verbose = 1)
     model = algo(
-            MlpPolicy, env, 
-            batch_size = batch_size, 
-            policy_kwargs = dict(net_arch = net_arch), 
-            seed = seed, verbose = 1, 
-        )
+        MlpPolicy, env, 
+        batch_size = batch_size, 
+        policy_kwargs = dict(net_arch = net_arch), 
+        seed = seed, verbose = 1, 
+    )
 
     # Create Callbacks and train the model
     auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
@@ -115,11 +116,13 @@ def main(args, unknown_args):
     for i in range(n_eval_episodes):
         obs = eval_env.reset()
         action = best_model.predict(obs, deterministic = True)[0]
-        # print("best calibration parameters: ", action)
+        action = eval_env.rescale_action(action)
+
         dist = eval_env.distance_to_goal(action)
         print(f'best distance to goal for config {i} is  {eval_env.distance_to_goal(action)}')
         dists.append(dist)
-   
+        
+    print("best calibration parameters: ", action)   
     print('best mean distance: ', np.mean(dists))
 
     
