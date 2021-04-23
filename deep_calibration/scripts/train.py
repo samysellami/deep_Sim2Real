@@ -7,13 +7,13 @@ import json
 
 from deep_calibration import script_dir
 from deep_calibration.utils.kinematics import Kinematics
-from deep_calibration.scripts.callbacks import SaveOnBestTrainingRewardCallback
-from deep_calibration.scripts.callbacks import EvalCallback
-from deep_calibration.scripts.callbacks import PlottingCallback
-from deep_calibration.scripts.callbacks import ProgressBarManager, ProgressBarCallback
-from deep_calibration.scripts.wrappers import NormalizeActionWrapper, TimeLimitWrapper
-from deep_calibration.scripts.evaluation import evaluate_policy
-
+from deep_calibration.utils.callbacks import SaveOnBestTrainingRewardCallback
+from deep_calibration.utils.callbacks import EvalCallback
+from deep_calibration.utils.callbacks import PlottingCallback
+from deep_calibration.utils.callbacks import ProgressBarManager, ProgressBarCallback
+from deep_calibration.utils.wrappers import NormalizeActionWrapper, TimeLimitWrapper
+from deep_calibration.utils.evaluation import evaluate_policy
+from deep_calibration.utils.exp_manager import ExperimentManager
 
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
@@ -22,6 +22,13 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
 
+
+
+ALGOS = {
+    "ppo": PPO,
+    "sac": SAC,
+    "td3": TD3,
+}
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -36,14 +43,15 @@ def build_args(parser):
         :return: (parser) The modified parser
     """
     parser.add_argument(
-        "--config","--configs",
-        help = "config file name", type = str,
-        metavar = "CONFIG_NAME", dest = "config", required = True
+        "--config","--configs", help = "config file name", type = str, metavar = "CONFIG_NAME", dest = "config", required = True
     )
     parser.add_argument(
-        "--algo", type = str, default=None, 
-        dest = "algo", help = "algorithm", required = True
+        "--algo", type = str, default=None, dest = "algo", help = "algorithm", required = True
     )
+    parser.add_argument(
+    "-optimize", "--optimize-hyperparameters", action="store_true", default=False, dest = "optimize",  help="Run hyperparameters search"
+    )
+
     return parser
 
 
@@ -52,65 +60,84 @@ def main(args, unknown_args):
     # path to the configuration file 
     path = os.path.join(script_dir,'configs', args.config)
     
+    # check if the algorithm is implemented     
+    if  args.algo not in ALGOS:   
+        raise NotImplementedError('the algorithm specified has not been recognized !!')
+
     # parsing the config file and the args parser 
     config_file = configparser.ConfigParser()
     config_file.read(path)
-    total_timesteps = config_file.getint('ADAPT','total_timesteps')
-    env_name = config_file['ADAPT']['environment']
+    n_timesteps = config_file.getint('ADAPT','total_timesteps')
+    env_id = config_file['ADAPT']['environment']
     batch_size = config_file.getint(args.algo, 'batch_size')        
     net_arch = json.loads(config_file.get(args.algo, 'net_arch')) 
     seed = config_file.getint(args.algo, 'seed')        
-    n_eval_episodes = 10
+    n_eval_episodes = 5
     n_eval_test = 5
-
-    
-    # define the algorithm 
-    if args.algo == 'PPO':   
-        from stable_baselines3.ppo.policies import MlpPolicy
-        algo = PPO
-    elif args.algo == 'SAC':
-        from stable_baselines3.sac.policies import MlpPolicy
-        algo = SAC
-    elif args.algo == 'TD3':
-        from stable_baselines3.td3.policies import MlpPolicy
-        algo = TD3
-    else:
-        raise NotImplementedError('the algorithm specified has not been recognized !!')
+    eval_freq = 10
+    n_trials = 20
 
     # Create the saving directory
-    log_dir = os.path.join(script_dir,'saved_models', args.algo)
-    os.makedirs(log_dir, exist_ok = True)
+    log_folder = os.path.join(script_dir,'saved_models', args.algo)
+    os.makedirs(log_folder, exist_ok = True)
 
     # Create and wrap the environment
-    # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_dir)
-    eval_env = Monitor(gym.make(env_name), log_dir)  
+    # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_folder)
+    eval_env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)  
     eval_env = NormalizeActionWrapper(eval_env)
-    env = Monitor(gym.make(env_name), log_dir)
+    env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
     env = NormalizeActionWrapper(env)
     # env = DummyVecEnv([lambda: env])
 
     # create the model
     # model = algo(MlpPolicy, env, verbose = 1)
-    model = algo(
-        MlpPolicy, env, 
+
+    if args.optimize == True:
+
+        exp_manager = ExperimentManager(
+            args,
+            algo = args.algo,
+            env_id = env_id,
+            log_folder = log_folder,
+            n_timesteps = n_timesteps,
+            eval_freq = eval_freq,
+            n_eval_episodes = n_eval_episodes,
+            n_trials = n_trials,
+            optimize_hyperparameters =  args.optimize,
+        )
+
+        # Prepare experiment and launch hyperparameter optimization if needed
+        model = exp_manager.setup_experiment()
+
+        # Normal training
+        if model is not None:
+            exp_manager.learn(model)
+            exp_manager.save_trained_model(model)
+        else:
+            exp_manager.hyperparameters_optimization()
+
+        return
+
+    model = ALGOS[args.algo](
+        'MlpPolicy', env, 
         batch_size = batch_size, 
         policy_kwargs = dict(net_arch = net_arch), 
-        seed = seed, verbose = 1, 
+        verbose = 1, seed = seed, 
     )
 
     # Create Callbacks and train the model
-    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_dir, verbose = 1)
-    plotting_callback = PlottingCallback(log_dir = log_dir)
-    eval_callback = EvalCallback(eval_env, best_model_save_path = log_dir,
-                                log_path = log_dir, eval_freq = 10, n_eval_episodes = n_eval_episodes,
+    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_folder, verbose = 1)
+    plotting_callback = PlottingCallback(log_dir = log_folder)
+    eval_callback = EvalCallback(eval_env, best_model_save_path = log_folder,
+                                log_path = log_folder, eval_freq = eval_freq, n_eval_episodes = n_eval_episodes,
                                 deterministic = True, render = False, verbose = 0)
 
-    with ProgressBarManager(total_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
-        model.learn(total_timesteps = total_timesteps, callback = [eval_callback, progress_callback])
+    with ProgressBarManager(n_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
+        model.learn(total_timesteps = n_timesteps, callback = [eval_callback, progress_callback])
     del model
 
     # get the best predition from the best model
-    best_model = algo.load(log_dir + '/best_model')  
+    best_model = ALGOS[args.algo].load(log_folder + '/best_model')  
 
     # sample an observation from the environment and compute the action
     dists = []
@@ -139,7 +166,6 @@ def main(args, unknown_args):
         dists.append(dist)
 
     print('best random mean distance: ', np.mean(dists))
-
 	
 if __name__ == "__main__":
     args, unknown_args = parse_args()

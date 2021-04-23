@@ -1,9 +1,16 @@
 numpy>=1.16.4
 matplotlib
-tensorflow==1.14.0
+tensorflow
 gym
 tqdm
-stable-baselines3[extra]
-#stable-baselines[mpi]
-# catalyst
-# catalyst-rl
+
+stable-baselines3
+box2d-py==2.3.8
+pybullet
+gym-minigrid	
+scikit-optimize
+optuna
+pytablewriter
+seaborn
+pyyaml>=5.1
+sb3-contrib>=1.0

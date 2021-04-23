@@ -2,8 +2,7 @@
 pyrep_src="../PyRep"
 env_name="deep_env" # virtual environment name
 use_pyrep=0
-baselines_src="../baselines"
-
+baselines3_zoo="../rl-baselines3-zoo"
 
 if [ ! -d $env_name ]
 then

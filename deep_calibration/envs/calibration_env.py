@@ -19,21 +19,27 @@ class CalibrationEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(
-    self, conifg = [
+    self, config = [
       np.array([0 ,0 ,0 ,0 ,0 ,0]), 
       np.array([0, math.pi/2, 0, math.pi/2, 0, math.pi/2]), 
       np.array([math.pi/2, 0, math.pi/2, 0, math.pi/2, 0]),
-      np.array([0, math.pi/4, 0, math.pi/4, 0, math.pi/4]),
-      np.array([math.pi/4, 0, math.pi/4, 0, math.pi/4, 0]), 
       np.array([0, math.pi/3, 0, math.pi/3, 0, math.pi/3]),
       np.array([math.pi/3, 0, math.pi/3, 0, math.pi/3, 0]), 
-      np.array([0, math.pi/5, 0, math.pi/5, 0, math.pi/5]),
-      np.array([math.pi/5, 0, math.pi/5, 0, math.pi/5, 0]),
-      np.array([math.pi/6, 0, math.pi/6, 0, math.pi/6, 0]) 
+      # np.array([0, math.pi/4, 0, math.pi/4, 0, math.pi/4]),
+      # np.array([math.pi/4, 0, math.pi/4, 0, math.pi/4, 0]), 
+      # np.array([0, math.pi/5, 0, math.pi/5, 0, math.pi/5]),
+      # np.array([math.pi/5, 0, math.pi/5, 0, math.pi/5, 0]),
+      # np.array([math.pi/6, 0, math.pi/6, 0, math.pi/6, 0]),
+      # np.array([0, math.pi/6, 0, math.pi/6, 0, math.pi/6]),
+      # np.array([math.pi/7, 0, math.pi/7, 0, math.pi/7, 0]),
+      # np.array([0, math.pi/7, 0, math.pi/7, 0, math.pi/7]), 
+      # np.array([math.pi/8, 0, math.pi/8, 0, math.pi/8, 0]),
+      # np.array([0, math.pi/8, 0, math.pi/8, 0, math.pi/8]), 
     ],  
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
-    p_x = np.array([0.05, -0.05, 0]), p_y = np.zeros(4), p_z = np.zeros(4), 
-    phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
+    p_x = np.array([0.2, -0.2, 0.2]), p_y = np.array([0.2, -0.2, 0.2, -0.2]), p_z = np.array([0.2, -0.2, 0.2, -0.2]), 
+    phi_x = np.array([0.02]), phi_y = np.array([0.02, -0.02, 0.02, -0.02, 0.02, -0.02]), 
+    phi_z = np.array([0.02, -0.02, 0.02])
   ):
     
     # action encodes the calibration parameters (positional and rotational)
@@ -41,8 +47,8 @@ class CalibrationEnv(gym.Env):
     #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
     #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
     # })
-    self.pos = 0.1
-    self.ori = 0.01 
+    self.pos = 0.300
+    self.ori = 0.030
     self.action_space = spaces.Box(
       np.array(
         [-self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos,
@@ -67,13 +73,14 @@ class CalibrationEnv(gym.Env):
       ), 
       dtype='float32'
     )
-    self._config = conifg
-    self._default_action = np.zeros(26)
+    self._configs = config
+    # self._config = []
+    self._config = self._configs
     self._default_action = self.get_default_action(
         delta = delta, p_x = p_x, p_y = p_y, p_z = p_z, 
         phi_x = phi_x, phi_y = phi_y, phi_z = phi_z
     )
-    self._q = conifg[0]
+    self._q = config[0]
     self._i = -1
     self.rand = 0
     self._delta = np.zeros(5)
@@ -84,6 +91,9 @@ class CalibrationEnv(gym.Env):
     self._goal_pos = self.get_position()
     self._prev_distance = None
 
+  @property
+  def config(self):
+      return self._config
 
 # -------------- Gym specific methods  ---------------------
 
@@ -106,9 +116,14 @@ class CalibrationEnv(gym.Env):
 
   def reset(self):
     # print('--------Episode reset--------')
-    self._count = 0
-    self._prev_distance  = None
+    # self._count = 0
+    j = len(self._config)
+    if self._count % 1000000 == 0 and j < len(self._configs):
+      print('--------changing configs --------')
+      self._config.append(self._configs[j])
 
+
+    self._prev_distance  = None
     if self._reset == 0:
       self.setup_joints()  
       self._goal_pos = self.get_position()
@@ -206,7 +221,7 @@ class CalibrationEnv(gym.Env):
       self._prev_distance = self.distance_to_goal(action)
     
     dist_goal = self.distance_to_goal(action)
-    reward = (self._prev_distance - dist_goal) / self._prev_distance + (1/dist_goal)
+    reward = (self._prev_distance - dist_goal)/self._prev_distance + (10/dist_goal)
     if math.isnan(reward):
       reward = 1000
     return reward
@@ -219,10 +234,14 @@ class CalibrationEnv(gym.Env):
     """
     self._count += 1
     done = False   
-    if self._count >= 500:  
-      # print('--------Reset: Timeout--------')
-      done = True
-    if self.distance_to_goal(action) > 100:
+    if self.distance_to_goal(action) > 300:
       print('--------Reset: Divergence--------')
       done = True
+    elif self.distance_to_goal(action) < 0.001:
+      print('--------Reset: Convergence--------')
+      done = True
+    elif self._count % 1000 == 0:  
+      print('--------Reset: Timeout--------')
+      done = True
+
     return done
