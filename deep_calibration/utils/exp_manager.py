@@ -492,7 +492,7 @@ class ExperimentManager(object):
         :return: the vectorized environment, with appropriate wrappers
         """
         # Do not log eval env (issue with writing the same file)
-        env = Monitor(gym.make(f"deep_calibration:{self.env_id}"), self.log_folder)
+        env = Monitor(gym.make(f"deep_calibration:{self.env_id}"), self.log_path)
         env = NormalizeActionWrapper(env)
         return env
 
@@ -717,7 +717,7 @@ class ExperimentManager(object):
             f"-{self.sampler}-{self.pruner}_{int(time.time())}.csv"
         )
 
-        log_path = os.path.join(self.log_folder, f"{self.algo}_optimize", report_name)
+        log_path = os.path.join(self.log_folder, self.algo, report_name)
 
         if self.verbose:
             print(f"Writing report to {log_path}")

@@ -2,12 +2,13 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 
 from deep_calibration.scripts import train
+from deep_calibration.scripts import run
  
 
 COMMANDS = OrderedDict(
     [
         ("train", train),
-        # ("test", 'run'),
+        ("run", run),
     ]
 )
 

@@ -45,9 +45,7 @@ def build_args(parser):
     parser.add_argument(
         "--config","--configs", help = "config file name", type = str, metavar = "CONFIG_NAME", dest = "config", required = True
     )
-    parser.add_argument(
-        "--algo", type = str, default=None, dest = "algo", help = "algorithm", required = True
-    )
+    parser.add_argument("--algo", type = str, default=None, dest = "algo", help = "algorithm", required = True)
     parser.add_argument(
     "-optimize", "--optimize-hyperparameters", action="store_true", default=False, dest = "optimize",  help="Run hyperparameters search"
     )
@@ -78,6 +76,7 @@ def main(args, unknown_args):
     n_trials = 20
 
     # Create the saving directory
+    log_path = os.path.join(script_dir,'saved_models')
     log_folder = os.path.join(script_dir,'saved_models', args.algo)
     os.makedirs(log_folder, exist_ok = True)
 
@@ -98,7 +97,7 @@ def main(args, unknown_args):
             args,
             algo = args.algo,
             env_id = env_id,
-            log_folder = log_folder,
+            log_folder = log_path,
             n_timesteps = n_timesteps,
             eval_freq = eval_freq,
             n_eval_episodes = n_eval_episodes,
