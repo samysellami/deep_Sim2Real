@@ -59,9 +59,6 @@ def main(args, unknown_args):  # noqa: C901
     config_file.read(path)
     n_timesteps = config_file.getint('ADAPT','total_timesteps')
     env_id = config_file['ADAPT']['environment']
-    batch_size = config_file.getint(args.algo, 'batch_size')        
-    net_arch = json.loads(config_file.get(args.algo, 'net_arch')) 
-    seed = config_file.getint(args.algo, 'seed')        
     n_eval_episodes = 5
     n_eval_test = 5
     eval_freq = 10

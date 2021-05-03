@@ -21,10 +21,10 @@ class CalibrationEnv(gym.Env):
   def __init__(
     self, config = [
       np.array([0 ,0 ,0 ,0 ,0 ,0]), 
-      np.array([0, math.pi/2, 0, math.pi/2, 0, math.pi/2]), 
-      np.array([math.pi/2, 0, math.pi/2, 0, math.pi/2, 0]),
-      np.array([0, math.pi/3, 0, math.pi/3, 0, math.pi/3]),
-      np.array([math.pi/3, 0, math.pi/3, 0, math.pi/3, 0]), 
+      # np.array([0, math.pi/2, 0, math.pi/2, 0, math.pi/2]), 
+      # np.array([math.pi/2, 0, math.pi/2, 0, math.pi/2, 0]),
+      # np.array([0, math.pi/3, 0, math.pi/3, 0, math.pi/3]),
+      # np.array([math.pi/3, 0, math.pi/3, 0, math.pi/3, 0]), 
       # np.array([0, math.pi/4, 0, math.pi/4, 0, math.pi/4]),
       # np.array([math.pi/4, 0, math.pi/4, 0, math.pi/4, 0]), 
       # np.array([0, math.pi/5, 0, math.pi/5, 0, math.pi/5]),
@@ -143,7 +143,7 @@ class CalibrationEnv(gym.Env):
       pertubate the joint angles for the reset function
     """
     self._i = (self._i + 1)  % len(self._config)
-    if self.rand ==0:
+    if self.rand == 0:
       self._q = self._config[self._i]
     else:
       step_limit = math.pi/50
@@ -240,7 +240,7 @@ class CalibrationEnv(gym.Env):
     elif self.distance_to_goal(action) < 0.001:
       print('--------Reset: Convergence--------')
       done = True
-    elif self._count % 1000 == 0:  
+    elif self._count % 10000 == 0:  
       print('--------Reset: Timeout--------')
       done = True
 

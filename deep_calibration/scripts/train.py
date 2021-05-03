@@ -73,12 +73,14 @@ def main(args, unknown_args):
     n_eval_episodes = 5
     n_eval_test = 5
     eval_freq = 10
-    n_trials = 20
+    n_trials = 100
 
     # Create the saving directory
     log_path = os.path.join(script_dir,'saved_models')
     log_folder = os.path.join(script_dir,'saved_models', args.algo)
     os.makedirs(log_folder, exist_ok = True)
+    with open(f"{script_dir}/saved_models/{args.algo}/best_reward.npy", 'wb') as f:
+        np.save(f, np.array([-np.inf]))
 
     # Create and wrap the environment
     # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_folder)
@@ -91,31 +93,40 @@ def main(args, unknown_args):
     # create the model
     # model = algo(MlpPolicy, env, verbose = 1)
 
-    if args.optimize == True:
+    # if args.optimize == True:
 
-        exp_manager = ExperimentManager(
-            args,
-            algo = args.algo,
-            env_id = env_id,
-            log_folder = log_path,
-            n_timesteps = n_timesteps,
-            eval_freq = eval_freq,
-            n_eval_episodes = n_eval_episodes,
-            n_trials = n_trials,
-            optimize_hyperparameters =  args.optimize,
-        )
+    exp_manager = ExperimentManager(
+        args,
+        algo = args.algo,
+        env_id = env_id,
+        log_folder = log_path,
+        n_timesteps = n_timesteps,
+        eval_freq = eval_freq,
+        n_eval_episodes = n_eval_episodes,
+        n_trials = n_trials,
+        optimize_hyperparameters =  args.optimize,
+    )
 
-        # Prepare experiment and launch hyperparameter optimization if needed
-        model = exp_manager.setup_experiment()
+    # Prepare experiment and launch hyperparameter optimization if needed
+    model = exp_manager.setup_experiment()
 
-        # Normal training
-        if model is not None:
-            exp_manager.learn(model)
-            exp_manager.save_trained_model(model)
-        else:
-            exp_manager.hyperparameters_optimization()
+    # Normal training
+    if model is not None:
+        exp_manager.learn(model)
+        # exp_manager.save_trained_model(model)
+    else:
+        exp_manager.hyperparameters_optimization()
 
-        return
+    return
+
+
+
+
+
+
+
+
+
 
     model = ALGOS[args.algo](
         'MlpPolicy', env, 

@@ -157,6 +157,8 @@ class EvalCallback(EventCallback):
         super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
+        with open(f"{best_model_save_path}/best_reward.npy", 'rb') as f:
+            self.best_reward = np.load(f)[0]
         self.best_mean_reward = -np.inf
         self.last_mean_reward = -np.inf
         self.deterministic = deterministic
@@ -235,10 +237,16 @@ class EvalCallback(EventCallback):
             if mean_reward > self.best_mean_reward:
                 if self.verbose > 0:
                     print("New best mean reward!")
+
                 print(f"New best mean reward: {mean_reward:.4f} with mean distance: {mean_dist:.2f}")
-                if self.best_model_save_path is not None:
-                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
                 self.best_mean_reward = mean_reward
+                
+                if self.best_model_save_path is not None and self.best_mean_reward > self.best_reward:
+                    self.best_reward = self.best_mean_reward  
+                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
+                    with open(f"{self.best_model_save_path}/best_reward.npy", 'wb') as f:
+                        np.save(f, np.array([self.best_reward]))
+
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
@@ -273,6 +281,9 @@ class TrialEvalCallback(EvalCallback):
         eval_freq: int = 10000,
         deterministic: bool = True,
         verbose: int = 0,
+        best_model_save_path: str = None,
+        log_path: str = None
+
     ):
 
         super(TrialEvalCallback, self).__init__(
@@ -281,6 +292,8 @@ class TrialEvalCallback(EvalCallback):
             eval_freq=eval_freq,
             deterministic=deterministic,
             verbose=verbose,
+            best_model_save_path = best_model_save_path,
+            log_path = log_path
         )
         self.trial = trial
         self.eval_idx = 0

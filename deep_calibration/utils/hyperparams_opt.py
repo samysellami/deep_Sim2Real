@@ -154,8 +154,8 @@ def sample_sac_params(trial: optuna.Trial) -> Dict[str, Any]:
     batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128, 256, 512, 1024, 2048])
     buffer_size = trial.suggest_categorical("buffer_size", [int(1e4), int(1e5), int(1e6)])
     learning_starts = trial.suggest_categorical("learning_starts", [0, 1000, 10000, 20000])
-    # train_freq = trial.suggest_categorical('train_freq', [1, 10, 100, 300])
-    train_freq = trial.suggest_categorical("train_freq", [8, 16, 32, 64, 128, 256, 512])
+    train_freq = trial.suggest_categorical('train_freq', [1, 10, 100, 300])
+    # train_freq = trial.suggest_categorical("train_freq", [8, 16, 32, 64, 128, 256, 512])
     # Polyak coeff
     tau = trial.suggest_categorical("tau", [0.001, 0.005, 0.01, 0.02, 0.05])
     # gradient_steps takes too much time

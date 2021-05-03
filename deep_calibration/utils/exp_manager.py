@@ -187,7 +187,9 @@ class ExperimentManager(object):
             kwargs["callback"] = self.callbacks
 
         try:
-            model.learn(self.n_timesteps, **kwargs)
+            with ProgressBarManager(self.n_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
+                model.learn(total_timesteps = self.n_timesteps, callback = [self.callbacks[0], progress_callback])
+            # model.learn(self.n_timesteps, **kwargs)
         except KeyboardInterrupt:
             # this allows to save the model when interrupting training
             pass
@@ -400,14 +402,14 @@ class ExperimentManager(object):
         if self.save_freq > 0:
             # Account for the number of parallel environments
             self.save_freq = max(self.save_freq // self.n_envs, 1)
-            self.callbacks.append(
-                CheckpointCallback(
-                    save_freq=self.save_freq,
-                    save_path=self.save_path,
-                    name_prefix="rl_model",
-                    verbose=1,
-                )
+            
+            check_point_callback = CheckpointCallback(
+                save_freq=self.save_freq,
+                save_path=self.save_path,
+                name_prefix="rl_model",
+                verbose=1,
             )
+            
 
         # Create test env if needed, do not normalize reward
         if self.eval_freq > 0 and not self.optimize_hyperparameters:
@@ -420,13 +422,14 @@ class ExperimentManager(object):
             save_vec_normalize = SaveVecNormalizeCallback(save_freq=1, save_path=self.params_path)
             eval_callback = EvalCallback(
                 self.create_envs(1, eval_env=True),
-                callback_on_new_best=save_vec_normalize,
-                best_model_save_path=self.save_path,
+                best_model_save_path=self.log_path,
                 n_eval_episodes=self.n_eval_episodes,
-                log_path=self.save_path,
+                log_path=self.log_path,
                 eval_freq=self.eval_freq,
                 deterministic=self.deterministic_eval,
+                verbose = 0,
             )
+
 
             self.callbacks.append(eval_callback)
 
@@ -636,6 +639,8 @@ class ExperimentManager(object):
             n_eval_episodes=self.n_eval_episodes,
             eval_freq=self.eval_freq,
             deterministic=self.deterministic_eval,
+            best_model_save_path = self.log_path,
+            log_path = self.log_path
         )
 
         try:
@@ -654,7 +659,7 @@ class ExperimentManager(object):
             print(e)
             raise optuna.exceptions.TrialPruned()
         is_pruned = eval_callback.is_pruned
-        reward = eval_callback.last_mean_reward
+        reward = eval_callback.best_mean_reward
 
         del model.env, eval_env
         del model
