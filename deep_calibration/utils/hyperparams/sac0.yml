@@ -21,13 +21,14 @@ calib_env-v0:
     n_timesteps: !!float 3e5  
     gamma: 0.9999
     policy: 'MlpPolicy'
-    learning_rate: 0.007202464744943781
+    lr: 0.007202464744943781
     batch_size: 128
     buffer_size: 10000
     learning_starts: 0
     train_freq: 300
     tau: 0.005
-    policy_kwargs: "dict(log_std_init=-0.7260682336855917, net_arch=[256, 256])"
+    log_std_init: -0.7260682336855917
+    net_arch: medium
 # Writing report to /home/sami/Documents/P.h.D/P.h.D_codes/Main_codes/Deep_Sim2Real/deep_calibration/saved_models/sac/report_calib_env-v0_100-trials-10000-tpe-median_1620079872.csv
 
 
