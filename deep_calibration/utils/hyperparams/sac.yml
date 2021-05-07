@@ -1,4 +1,4 @@
-calib_env-v0_sac:
+calib_env-v0:
   n_timesteps: !!float 3e5  
   policy: 'MlpPolicy'
   learning_rate: !!float 3e-4
@@ -17,7 +17,7 @@ calib_env-v0_sac:
 # Number of finished trials:  100
 # Best trial:
 # Value:  0.1925074764502946
-calib_env-v0:
+calib_env-v0_opt:
     n_timesteps: !!float 3e5  
     gamma: 0.9999
     policy: 'MlpPolicy'

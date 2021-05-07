@@ -1,21 +1,27 @@
 !!python/object/apply:collections.OrderedDict
 - - - batch_size
-    - 128
+    - 256
   - - buffer_size
-    - 10000
+    - 1000000
+  - - ent_coef
+    - auto
   - - gamma
-    - 0.9999
+    - 0.99
+  - - gradient_steps
+    - 1
   - - learning_rate
-    - 0.007202464744943781
+    - 0.0003
   - - learning_starts
-    - 0
+    - 100
   - - n_timesteps
     - 300000.0
   - - policy
     - MlpPolicy
   - - policy_kwargs
-    - dict(log_std_init=-0.7260682336855917, net_arch=[256, 256])
+    - dict(log_std_init=-3, net_arch=[256, 256])
   - - tau
     - 0.005
   - - train_freq
-    - 300
+    - 1
+  - - use_sde
+    - true

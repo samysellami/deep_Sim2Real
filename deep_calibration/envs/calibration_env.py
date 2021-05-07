@@ -21,10 +21,10 @@ class CalibrationEnv(gym.Env):
   def __init__(
     self, config = [
       np.array([0 ,0 ,0 ,0 ,0 ,0]), 
-      # np.array([0, math.pi/2, 0, math.pi/2, 0, math.pi/2]), 
-      # np.array([math.pi/2, 0, math.pi/2, 0, math.pi/2, 0]),
-      # np.array([0, math.pi/3, 0, math.pi/3, 0, math.pi/3]),
-      # np.array([math.pi/3, 0, math.pi/3, 0, math.pi/3, 0]), 
+      np.array([0, math.pi/2, 0, math.pi/2, 0, math.pi/2]), 
+      np.array([math.pi/2, 0, math.pi/2, 0, math.pi/2, 0]),
+      np.array([0, math.pi/3, 0, math.pi/3, 0, math.pi/3]),
+      np.array([math.pi/3, 0, math.pi/3, 0, math.pi/3, 0]), 
       # np.array([0, math.pi/4, 0, math.pi/4, 0, math.pi/4]),
       # np.array([math.pi/4, 0, math.pi/4, 0, math.pi/4, 0]), 
       # np.array([0, math.pi/5, 0, math.pi/5, 0, math.pi/5]),
@@ -37,28 +37,39 @@ class CalibrationEnv(gym.Env):
       # np.array([0, math.pi/8, 0, math.pi/8, 0, math.pi/8]), 
     ],  
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
-    p_x = np.array([0.2, -0.2, 0.2]), p_y = np.array([0.2, -0.2, 0.2, -0.2]), p_z = np.array([0.2, -0.2, 0.2, -0.2]), 
+    p_x = np.array([0.3, -0.2, 0.2]), p_y = np.array([-0.2, -0.2, 0.2, -0.2]), p_z = np.array([-0.1, -0.2, 0.2, -0.2]), 
     phi_x = np.array([0.02]), phi_y = np.array([0.02, -0.02, 0.02, -0.02, 0.02, -0.02]), 
     phi_z = np.array([0.02, -0.02, 0.02])
   ):
     
+
+    self.pos = 0.500
+    self.ori = 0.050
     # action encodes the calibration parameters (positional and rotational)
     # self._action_space = spaces.Dict({
     #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
     #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
     # })
-    self.pos = 0.300
-    self.ori = 0.030
+    # self.action_space = spaces.Box(
+    #   np.array(
+    #     [-self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos,
+    #     -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, 
+    #     -self.ori, -self.ori, -self.ori, -self.ori]
+    #   ),
+    #   np.array(
+    #     [self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos,
+    #     self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, 
+    #     self.ori, self.ori, self.ori, self.ori]
+    #   ),
+    #   dtype='float32'
+    # )
+
     self.action_space = spaces.Box(
       np.array(
-        [-self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos, -self.pos,
-        -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, -self.ori, 
-        -self.ori, -self.ori, -self.ori, -self.ori]
+        [-self.pos, -self.pos, -self.pos]
       ),
       np.array(
-        [self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos, self.pos,
-        self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, self.ori, 
-        self.ori, self.ori, self.ori, self.ori]
+        [self.pos, self.pos, self.pos]
       ),
       dtype='float32'
     )
@@ -66,10 +77,10 @@ class CalibrationEnv(gym.Env):
     # the observation encodes the x, y, z position of the end effector and the joint angles
     self.observation_space = spaces.Box(
       np.array(
-        [-1500, -1500, 0, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]
+        [-2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]
       ),
       np.array(
-        [1500, 1500, 1500, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]
+        [ 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]
       ), 
       dtype='float32'
     )
@@ -83,9 +94,9 @@ class CalibrationEnv(gym.Env):
     self._q = config[0]
     self._i = -1
     self.rand = 0
-    self._delta = np.zeros(5)
-    self._p_x = np.zeros(3); self._p_y = np.zeros(4); self._p_z = np.zeros(4) 
-    self._phi_x = np.zeros(1); self._phi_y = np.zeros(6); self._phi_z = np.zeros(3)    
+    self._delta = delta
+    self._p_x = p_x; self._p_y = p_y; self._p_z = p_z 
+    self._phi_x = phi_x; self._phi_y = phi_y; self._phi_z = phi_z    
     self._count = 0 # total time_steps
     self._reset = 0 # reset the environment from the initial joint position
     self._goal_pos = self.get_position()
@@ -95,7 +106,7 @@ class CalibrationEnv(gym.Env):
   def config(self):
       return self._config
 
-# -------------- Gym specific methods  ---------------------
+# ---------------------------- Gym specific methods  -----------------------------------
 
   def step(self, action):
     # print('--------Environment step--------')
@@ -136,7 +147,7 @@ class CalibrationEnv(gym.Env):
   def close(self):
     ...
 
-# --------------  env-specific methods ---------------------
+# ----------------------------  env-specific methods -----------------------------------
 
   def setup_joints(self):
     """
@@ -158,14 +169,19 @@ class CalibrationEnv(gym.Env):
 
   def get_default_action(self, delta, p_x, p_y, p_z, 
                         phi_x, phi_y, phi_z):
-    action = np.zeros(26)
-    action[0:3] = p_x  
-    action[3:7] = p_y   
-    action[7:11] = p_z   
-    action[11:16] = delta 
-    action[16:17] = phi_x 
-    action[17:23] = phi_y  
-    action[23:] = phi_z  
+    action = np.zeros(3)
+    action[0] = p_x[0]
+    action[1] = p_y[0]
+    action[2] = p_z[0]
+
+    # action = np.zeros(26)    
+    # action[0:3] = p_x  
+    # action[3:7] = p_y   
+    # action[7:11] = p_z   
+    # action[11:16] = delta 
+    # action[16:17] = phi_x 
+    # action[17:23] = phi_y  
+    # action[23:] = phi_z  
     return action
 
 
@@ -178,13 +194,17 @@ class CalibrationEnv(gym.Env):
     if action is None:
       action = self._default_action
 
-    self._p_x = action[0:3]
-    self._p_y = action[3:7] 
-    self._p_z = action[7:11] 
-    self._delta = action[11:16]
-    self._phi_x = action[16:17] 
-    self._phi_y = action[17:23] 
-    self._phi_z = action[23:] 
+    self._p_x[0] = action[0]
+    self._p_y[0] = action[1] 
+    self._p_z[0] = action[2] 
+
+    # self._p_x = action[0:3]
+    # self._p_y = action[3:7] 
+    # self._p_z = action[7:11] 
+    # self._delta = action[11:16]
+    # self._phi_x = action[16:17] 
+    # self._phi_y = action[17:23] 
+    # self._phi_z = action[23:] 
     
     FK = Kinematics(
       delta = self._delta, p_x = self._p_x, p_y = self._p_y, p_z = self._p_z, 
@@ -202,7 +222,8 @@ class CalibrationEnv(gym.Env):
       action = self._default_action
 
     pos = self.get_position(action)
-    return np.hstack((pos,self._q)) 
+    return self._q
+    # return np.hstack((pos,self._q)) 
   
 
   def distance_to_goal(self, action):
@@ -237,10 +258,10 @@ class CalibrationEnv(gym.Env):
     if self.distance_to_goal(action) > 300:
       print('--------Reset: Divergence--------')
       done = True
-    elif self.distance_to_goal(action) < 0.001:
+    elif self.distance_to_goal(action) < 0.00001:
       print('--------Reset: Convergence--------')
       done = True
-    elif self._count % 10000 == 0:  
+    elif self._count % 1000 == 0:  
       print('--------Reset: Timeout--------')
       done = True
 

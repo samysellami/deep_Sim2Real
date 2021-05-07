@@ -146,10 +146,10 @@ def main(args, unknown_args):  # noqa: C901
             dist = eval_env.distance_to_goal(action)
             print(f'best distance to goal for config {i} is  {dist}')
             dists.append(dist)
-
+            print('best calibration parameters', action)
         # print("best calibration parameters: ", action)   
         print('best mean distance: ', np.mean(dists))
-
+        
         # testing for random configurations
         eval_env.rand = 1
         dists = []
