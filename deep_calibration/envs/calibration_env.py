@@ -37,7 +37,7 @@ class CalibrationEnv(gym.Env):
       # np.array([0, math.pi/8, 0, math.pi/8, 0, math.pi/8]), 
     ],  
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
-    p_x = np.array([0.3, -0.2, 0.2]), p_y = np.array([-0.2, -0.2, 0.2, -0.2]), p_z = np.array([-0.1, -0.2, 0.2, -0.2]), 
+    p_x = np.array([0.2, -0.2, 0.2]), p_y = np.array([-0.3, -0.2, 0.2, -0.2]), p_z = np.array([-0.1, -0.2, 0.2, -0.2]), 
     phi_x = np.array([0.02]), phi_y = np.array([0.02, -0.02, 0.02, -0.02, 0.02, -0.02]), 
     phi_z = np.array([0.02, -0.02, 0.02])
   ):
