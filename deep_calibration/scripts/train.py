@@ -84,11 +84,13 @@ def main(args, unknown_args):
 
     # Create and wrap the environment
     # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_folder)
-    eval_env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)  
-    eval_env = NormalizeActionWrapper(eval_env)
-    env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
-    env = NormalizeActionWrapper(env)
+    # eval_env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)  
+    # eval_env = NormalizeActionWrapper(eval_env)
+    # env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
+    # env = NormalizeActionWrapper(env)
     # env = DummyVecEnv([lambda: env])
+    np.set_printoptions(precision=5, suppress=True)
+
 
     # create the model
     # model = algo(MlpPolicy, env, verbose = 1)

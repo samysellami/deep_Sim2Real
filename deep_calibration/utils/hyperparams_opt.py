@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import numpy as np
 import optuna
-from sb3_contrib import TQC
+# from sb3_contrib import TQC
 from stable_baselines3 import DDPG, DQN, SAC, TD3
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from torch import nn as nn

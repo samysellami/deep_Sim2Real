@@ -13,4 +13,8 @@ optuna
 pytablewriter
 seaborn
 pyyaml>=5.1
-sb3-contrib>=1.0
+# sb3-contrib>=1.0
+
+scipy>=0.18.0
+numba>=0.49.1
+numpy-quaternion

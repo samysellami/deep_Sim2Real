@@ -3,7 +3,7 @@ import gym
 from gym.wrappers import TimeLimit
 
 from matplotlib import pyplot as plt
-from sb3_contrib.common.wrappers import TimeFeatureWrapper  # noqa: F401 (backward compatibility)
+# from sb3_contrib.common.wrappers import TimeFeatureWrapper  # noqa: F401 (backward compatibility)
 from scipy.signal import iirfilter, sosfilt, zpk2sos
 
 class NormalizeActionWrapper(gym.Wrapper):

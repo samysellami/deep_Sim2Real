@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.linalg import multi_dot
 import math
-
+import quaternion
 
 class Kinematics():
 	"""
@@ -12,7 +12,7 @@ class Kinematics():
 	"""
 
 	def __init__(
-		self, delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
+		self, quater = np.zeros(3), delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
 		phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
 		):  
 		
@@ -35,6 +35,14 @@ class Kinematics():
 			'joint5': {'delta': delta[3], 'p_x': p_x[2], 'p_y': p_y[3], 'phi_y': phi_y[5]}, 
 			'joint6': {'delta': delta[4]},
 		}
+		self.quater = np.quaternion(quater[0],quater[1],quater[2],quater[3])
+
+	def R_base(self, q):
+		Rb = np.zeros((4,4))
+		Rb[:3,:3] = quaternion.as_rotation_matrix(q) 
+		Rb[3,3] = 1
+		return Rb
+
 		
 	def Rx(self, theta):
 		return np.array(
@@ -66,7 +74,7 @@ class Kinematics():
 			[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, z], [0, 0, 0, 1]]
 		)	
 
-	def forward_kinematcis(self, q = np.array([0,0,0,0,0,0])):
+	def forward_kinematcis(self, q = np.array([0,0,0,0,0,0]), quater = False):
 		"""
 			Comutes the forward kinematics of the UR10 arm robot
 			:param q: (np.ndarray) the joint angles
@@ -79,14 +87,22 @@ class Kinematics():
 		d5 = self.DH[4,2]
 		d6 = self.DH[5,2]
 		
-		H_base = multi_dot(
-			[self.Tx(self.calib_prms['base']['p_x']),
-			self.Ty(self.calib_prms['base']['p_y']),
-			self.Tz(d1 + self.calib_prms['base']['p_z']),
-			self.Rx(self.calib_prms['base']['phi_x']),  
-			self.Ry(self.calib_prms['base']['phi_y']),
-			self.Rz(self.calib_prms['base']['phi_z'])]
-		)
+		if quater == True:
+			H_base = multi_dot(
+				[self.Tx(self.calib_prms['base']['p_x']),
+				self.Ty(self.calib_prms['base']['p_y']),
+				self.Tz(d1 + self.calib_prms['base']['p_z']),
+				self.R_base(self.quater)]
+			)
+		else:
+			H_base = multi_dot(
+				[self.Tx(self.calib_prms['base']['p_x']),
+				self.Ty(self.calib_prms['base']['p_y']),
+				self.Tz(d1 + self.calib_prms['base']['p_z']),
+				self.Rx(self.calib_prms['base']['phi_x']),  
+				self.Ry(self.calib_prms['base']['phi_y']),
+				self.Rz(self.calib_prms['base']['phi_z'])]
+			)
 
 		H_01 = multi_dot(
 			[self.Rz(q[0]), 
