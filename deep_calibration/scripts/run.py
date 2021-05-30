@@ -147,14 +147,8 @@ def main(args, unknown_args):  # noqa: C901
             dist = eval_env.distance_to_goal(action)
             print(f'distance to goal for config {i} = {dist:.6f}')
             dists.append(dist)
-            # print(f'calibration parameters for config {i} is {action}')
+            # print(f'parameters for config {i} is {action}')
 
-        # actions = np.array(actions)
-        # mean_actions = np.mean(actions, axis = 0)
-        # std_actions = np.std(actions, axis = 0) 
-
-        # print(f'mean actions =  {mean_actions}')
-        # print(f'std actions =  {std_actions}')
 
         print(f'mean distance = {np.mean(dists):.6f}')
 
@@ -163,14 +157,21 @@ def main(args, unknown_args):  # noqa: C901
         print(f'best distance = {dists[ind]:.6f}')
         print(f'best action =  {best_action}')
 
-        for action in actions:
+        actions_np = np.array(actions)
+        std_actions = np.std( actions_np , axis = 0) 
+
+        print(f'std actions =  {std_actions}')
+        print('########################################################')
+        for i, action in enumerate(actions):
+            print(f'config {i}')
+            print(f'action = {action}')
             dists = []
             for i in range(n_eval_episodes):
                 obs = eval_env.reset()
                 dist = eval_env.distance_to_goal(action)
                 dists.append(dist)
                 print(f'distance to goal for config {i} = {dist:.6f}')
-            print(f'best mean distance =  {np.mean(dists):.6f}')
+            print(f'mean distance =  {np.mean(dists):.6f}')
 
 
         # # testing for random configurations

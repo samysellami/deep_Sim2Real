@@ -27,27 +27,24 @@ class CalibrationEnv(gym.Env):
       np.array([math.pi/5, math.pi/6, math.pi/7, math.pi/8, math.pi/3, math.pi/4]), 
       np.array([math.pi/3, math.pi/5, math.pi/8, math.pi/4, math.pi/6, math.pi/7]),
     ],  
-    quater = np.array([0,1,2,3]),
+    quater = np.array([0.9998, 0.0100, 0.0098, 0.0100]),
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
     p_x = np.array([0.2, -0.2, 0.2]), p_y = np.array([-0.1, -0.2, 0.2, -0.2]), p_z = np.array([0.2, -0.2, 0.2, -0.2]), 
     phi_x = np.array([0.02]), phi_y = np.array([0.02, -0.02, 0.02, -0.02, 0.02, -0.02]), phi_z = np.array([0.02, -0.02, 0.02])
   ):
-    
-
-    self.pos = 0.500
-    self.ori = 0.050
     # action encodes the calibration parameters (positional and rotational)
     # self._action_space = spaces.Dict({
     #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
     #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
     # })
-
+    self.pos = 0.300
+    self.ori = 0.030
     self.action_space = spaces.Box(
       np.array(
-        [-self.pos, -self.pos, -self.pos, -0.1, 0.9, 1.9, 2.9]
+        [0.1, -0.2, 0.1, 0.98, -0.012, -0.012, -0.012]
       ),
       np.array(
-        [self.pos, self.pos, self.pos, 0.1, 1.1, 2.1, 3.1]
+        [0.3, 0.0, 0.3, 1, 0.012, 0.012, 0.012]
       ),
       dtype='float32'
     )
@@ -149,7 +146,7 @@ class CalibrationEnv(gym.Env):
 
   def setup_joints(self):
     """
-      pertubate the joint angles for the reset function
+      pertubate the joint angles for the reset function and computes the goal position
     """
     if self.rand == 0:
       self._i = (self._i + 1)  % len(self._config)
@@ -270,7 +267,7 @@ class CalibrationEnv(gym.Env):
       print('--------Reset: Convergence--------')
       done = True
     elif self._count % 1000 == 0:  
-      print('--------Reset: Timeout--------')
+      # print('--------Reset: Timeout--------')
       done = True
 
 
