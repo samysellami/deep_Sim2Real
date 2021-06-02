@@ -21,11 +21,11 @@ class CalibrationEnv(gym.Env):
   def __init__(
     self, config = [
       # np.array([0 ,0 ,0 ,0 ,0 ,0]), 
-      np.array([math.pi/8, math.pi/3, math.pi/4, math.pi/5, math.pi/6, math.pi/7]), 
-      np.array([math.pi/7, math.pi/6, math.pi/5, math.pi/4, math.pi/3, math.pi/8]),
+      np.array([-math.pi/8, math.pi/3, math.pi/4, math.pi/5, math.pi/6, -math.pi/7]), 
+      np.array([-math.pi/7, math.pi/6, -math.pi/5, math.pi/4, math.pi/3, -math.pi/8]),
       np.array([math.pi/5, math.pi/3, math.pi/4, math.pi/8, math.pi/7, math.pi/6]),
-      np.array([math.pi/5, math.pi/6, math.pi/7, math.pi/8, math.pi/3, math.pi/4]), 
-      np.array([math.pi/3, math.pi/5, math.pi/8, math.pi/4, math.pi/6, math.pi/7]),
+      np.array([-math.pi/5, math.pi/6, -math.pi/7, math.pi/8, math.pi/3, -math.pi/4]), 
+      np.array([-math.pi/3, -math.pi/5, -math.pi/8, -math.pi/4, -math.pi/6, -math.pi/7]),
     ],  
     quater = np.array([0.9998, 0.0100, 0.0098, 0.0100]),
     delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]), 
@@ -78,7 +78,8 @@ class CalibrationEnv(gym.Env):
     self._prev_distance = None
     self._best_action = np.zeros((self._n_config, self.action_space.shape[0] + 1))
     self.update_best_action(init = True)
-
+    self.all_config = True
+  
   @property
   def config(self):
       return self._config
@@ -104,6 +105,9 @@ class CalibrationEnv(gym.Env):
     if self._count % 10000000 == 0 and j < len(self._configs):
       print('--------changing configs --------')
       self._config.append(self._configs[j])
+
+    # if self._count % 10000 == 0:
+    #   print(f'--------best actions --------: {self._best_action}')
 
     self._prev_distance  = None
     self.setup_joints()  
@@ -229,15 +233,18 @@ class CalibrationEnv(gym.Env):
       Compute the reward value for the step function
       :param action: (np.ndarray) the calibration parameters 
     """
-    # dists_goal = []
-    # for l in range(self._n_config):
-    #   dists_goal.append(self.distance_to_goal(action))
-    #   self.setup_joints()
-    # dist_goal = np.mean(np.array(dists_goal))
-    
-    dist_goal = self.distance_to_goal(action)
-    actions_diff = LA.norm(self._best_action[self._best_action[:,-1] < dist_goal, :-1] - action)
 
+    if self.all_config== True:
+      dists_goal = []
+      for l in range(self._n_config):
+        dists_goal.append(self.distance_to_goal(action))
+        self.setup_joints()
+      dist_goal = np.mean(np.array(dists_goal))
+    else:
+      dist_goal = self.distance_to_goal(action)
+    
+    actions_diff = LA.norm(self._best_action[self._best_action[:,-1] < dist_goal, :-1] - action)
+    actions_diff = 0
     if self._prev_distance is None:
       self._prev_distance = self.distance_to_goal(action)
       reward =  (10/dist_goal)

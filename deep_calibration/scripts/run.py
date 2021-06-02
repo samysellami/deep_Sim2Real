@@ -44,6 +44,13 @@ def build_args(parser):
 
     return parser
 
+def std(data, mean):
+  n = len(data) 
+  deviations = [(x - mean) ** 2 for x in data]
+  std = sum(deviations) / n
+  std = np.sqrt(std)
+  return std
+
 def main(args, unknown_args):  # noqa: C901
 
 
@@ -157,14 +164,16 @@ def main(args, unknown_args):  # noqa: C901
         print(f'best distance = {dists[ind]:.6f}')
         print(f'best action =  {best_action}')
 
-        actions_np = np.array(actions)
-        std_actions = np.std( actions_np , axis = 0) 
+        std_actions = std( actions , best_action) 
 
         print(f'std actions =  {std_actions}')
         print('########################################################')
+
         for i, action in enumerate(actions):
             print(f'config {i}')
             print(f'action = {action}')
+            std_actions = std( actions , action) 
+            print(f'std actions =  {std_actions}')
             dists = []
             for i in range(n_eval_episodes):
                 obs = eval_env.reset()

@@ -168,7 +168,7 @@ class ExperimentManager(object):
                 env=env,
                 tensorboard_log=self.tensorboard_log,
                 seed=self.seed,
-                verbose=self.verbose,
+                verbose=0,
                 **self._hyperparams,
             )
 
