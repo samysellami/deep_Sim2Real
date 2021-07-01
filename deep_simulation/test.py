@@ -1,38 +1,37 @@
-from sim_env import CoppeliaSimEnvWrapper
-import time
-import numpy as np
+from pyrep import PyRep
+from pyrep.robots.arms.ur10 import UR10
+import os 
 
-if __name__ == "__main__":
-	sim = CoppeliaSimEnvWrapper()
-	
-	# time.sleep(10)
-	# observation = env._observation_space.sample()
-	# action = env._action_space.sample()
-	print("resetting the environment !!!")
-	sim.reset()
-	time.sleep(10)							
+SCENE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scenes/scene_UR10.ttt')
+DELTA = 0.01
+pr = PyRep()
+pr.launch(SCENE_FILE, headless=False)
+pr.start()
+agent = UR10()
 
-	print('Planning path  ...')
-	path = sim.UR10_arm.get_path(position= sim.goal.get_position(),
-                            quaternion= sim.gripper_dummy.get_quaternion(), ignore_collisions=True)
+starting_joint_positions = agent.get_joint_positions()
+pos, quat = agent.get_tip().get_position(), agent.get_tip().get_quaternion()
+print('start =', starting_joint_positions)
 
-	path.visualize()  # Let's see what the path looks like
-	print('Executing plan ...')
-	done = False
-	while not done:
-	    done = path.step()
-	    print(done)
-	    sim.env.step()
-	path.clear_visualization()
+new_joint_angles  = [x + y for x, y in zip(starting_joint_positions, [1.57, 0, 0, 0, 0, 0])] 
 
-	print('Closing left gripper ...')
-	while not sim.baxter_gripper.actuate(0.0, 0.1):
-		sim.env.step()
-	baxter_gripper.grasp(cup)
+agent.set_joint_target_positions(new_joint_angles)
+pr.step()
+print('new =',agent.get_joint_positions())
 
-	#goal_pos = sim.goal.get_position()
-	# sim.gripper.set_position(goal_pos)
-	# sim.env.step()
-	# time.sleep(10)	
 
-	print("finishing !!!")
+
+def move(index, delta):
+    pos[index] += delta
+    new_joint_angles = agent.solve_ik(pos, quaternion=quat)
+    agent.set_joint_target_positions(new_joint_angles)
+    pr.step()
+
+
+# [move(1, DELTA) for _ in range(1)]
+
+pr.stop()
+pr.shutdown()
+
+
+

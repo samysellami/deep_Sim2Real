@@ -1,4 +1,6 @@
 numpy>=1.16.4
+cffi==1.11.5
+
 matplotlib
 tensorflow
 gym

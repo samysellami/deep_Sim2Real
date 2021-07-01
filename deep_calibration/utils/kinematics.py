@@ -5,25 +5,26 @@ import quaternion
 
 class Kinematics():
 	"""
-		Kinematics of the UR10 arm 
-		:param delta: (np.ndarray) the initial delta calibration parameters of the UR10 arm
-		:param joints: (np.ndarray) the initial joints calibration parameters of the UR10 arm
-		:param joints: (np.ndarray) the initial base calibration parameters of the UR10 arm
+			Kinematics of the UR10 arm 
+		:param delta: (np.ndarray) the delta calibration parameters of the UR10 arm
+		:param p_x, p_y, p_z: (np.ndarray) the linear calibration parameters of the UR10 arm
+		:param phi_x, phi_y, phi_z: (np.ndarray) the angular calibration parameters of the UR10 arm
+		:param quater: (np.ndarray) the quaternion parameters for the base orientation of the UR10 arm
 	"""
 
 	def __init__(
-		self, quater = np.zeros(3), delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
+		self, quater = np.zeros(4), delta = np.zeros(5), p_x = np.zeros(3), p_y = np.zeros(4), p_z = np.zeros(4), 
 		phi_x = np.zeros(1), phi_y = np.zeros(6), phi_z = np.zeros(3)
-		):  
+	):  
 		
 		# DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
 		self.DH = np.array(
-			[[0, -math.pi/2, 128, 0], 
-			[612.7, 0, 0, 0], 
-			[571.6, 0, 0, 0], 
-			[0, -math.pi/2, 163.9, 0], 
-			[0, math.pi/2, 115.7, 0], 
-			[0, 0, 92.2, 0]]
+			[[0,    -math.pi/2, 128,   0], 
+			[612.7, 0,          0,     0], 
+			[571.6, 0,          0,     0], 
+			[0,     -math.pi/2, 163.9, 0], 
+			[0,     math.pi/2,  115.7, 0], 
+			[0,     0,          92.2,  0]]
 		)
 		# calibration parameters   
 		self.calib_prms = { 
@@ -74,7 +75,7 @@ class Kinematics():
 			[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, z], [0, 0, 0, 1]]
 		)	
 
-	def forward_kinematcis(self, q = np.array([0,0,0,0,0,0]), quater = False):
+	def forward_kinematics(self, q = np.array([0,0,0,0,0,0]), quater = False):
 		"""
 			Comutes the forward kinematics of the UR10 arm robot
 			:param q: (np.ndarray) the joint angles
@@ -146,4 +147,4 @@ class Kinematics():
 		H_robot = multi_dot(
 			[H_base, H_01, H_12, H_23, H_34, H_45, H_56]
 		)
-		return H_robot[0:3, 3]
+		return H_robot[0:3, 3], H_robot[0:3, 0:3]

@@ -1,5 +1,5 @@
 import os
-import cv2
+# import cv2
 import logging
 import numpy as np
 
@@ -8,27 +8,27 @@ from gym.spaces.box import Box
 from gym.spaces.dict import Dict
 from pyrep import PyRep, objects
 
-from catalyst_rl.rl.core import EnvironmentSpec
-from catalyst_rl.rl.utils import extend_space
+# from catalyst_rl.rl.core import EnvironmentSpec
+# from catalyst_rl.rl.utils import extend_space
 
 from pyrep.robots.end_effectors.baxter_gripper import BaxterGripper
 from pyrep.robots.arms.ur10 import UR10
 
 
-class CoppeliaSimEnvWrapper(EnvironmentSpec):
+class CoppeliaSimEnvWrapper():
     def __init__(self, visualize=True,
                  mode="train",
                  **params):
-        super().__init__(visualize=visualize, mode=mode)
+        # super().__init__(visualize=visualize, mode=mode)
 
         # Scene selection
-        scene_file_path = os.path.join(os.getcwd(), 'deep_simulation/scenes/UR10_gripper.ttt')
+        scene_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'scenes/scene_UR10_gripper.ttt')
 
         # Simulator launch
         self.env = PyRep()
         self.env.launch(scene_file_path, headless=False)
         self.env.start()
-        self.env.step()
+        # self.env.step()
 
         # Task related initialisations in Simulator
         self.vision_sensor = objects.vision_sensor.VisionSensor("Vision_sensor")
@@ -59,7 +59,7 @@ class CoppeliaSimEnvWrapper(EnvironmentSpec):
                                   dtype=np.uint8)})
 
         self._action_space = Box(-1, 1, (3,))
-        self._state_space = extend_space(self._observation_space, self._history_len)
+        # self._state_space = extend_space(self._observation_space, self._history_len)
 
     @property
     def history_len(self):
