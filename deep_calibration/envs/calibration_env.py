@@ -202,7 +202,7 @@ class CalibrationEnv(gym.Env):
     )
     
     noise = (2 * np.random.rand() - 1.) * 0.03
-    pos = FK.forward_kinematics(self._q, quater = True)[0]
+    pos = FK.forward_kinematics(self._q)[0]
     if noise == True:
        pos = pos + noise
     return pos
