@@ -51,7 +51,7 @@ class Kinematics():
 		self.R_base = R_base
 		self.p_tool = p_tool
 
-	def R_base(self, q):
+	def R_baseq(self, q):
 		Rb = np.zeros((4,4))
 		Rb[:3,:3] = quaternion.as_rotation_matrix(q) 
 		Rb[3,3] = 1
@@ -108,7 +108,7 @@ class Kinematics():
 					self.Tx(self.calib_prms['base']['p_x']),
 					self.Ty(self.calib_prms['base']['p_y']),
 					self.Tz(self.DH_used['base'] + self.calib_prms['base']['p_z']),
-					self.R_base(self.quater)
+					self.R_baseq(self.quater)
 				]
 			else:
 				H_base = [
@@ -163,7 +163,6 @@ class Kinematics():
 		H_tool = [np.identity(4)]
 		if self.p_tool is not None and j is not None:
 			H_tool[0][3,:3]  = self.p_tool[j]
-
 
 
 		H_total = H_base + H_01 + H_12 + H_23 + H_34 + H_45 + H_56 + H_tool
