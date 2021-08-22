@@ -13,35 +13,26 @@ from deep_calibration.utils.kinematics import Kinematics
 
 class CalibrationEnv(gym.Env):
     """
-      Gym environment for the deep calibration
-      :param q: (np.ndarray) the initial joint position of the UR10 arm
+        Gym environment for the deep calibration
+            :param q: (np.ndarray) the initial joint position of the UR10 arm
     """
     metadata = {'render.modes': ['human']}
 
     def __init__(
-        self, config=[
+        self, config = [
             # np.array([0 ,0 ,0 ,0 ,0 ,0]),
-            np.array([-math.pi/8, math.pi/3, math.pi/4,
-                     math.pi/5, math.pi/6, -math.pi/7]),
-            np.array([-math.pi/7, math.pi/6, -math.pi/5,
-                      math.pi/4, math.pi/3, -math.pi/8]),
-            np.array([math.pi/5, math.pi/3, math.pi/4,
-                      math.pi/8, math.pi/7, math.pi/6]),
-            np.array([-math.pi/5, math.pi/6, -math.pi/7,
-                     math.pi/8, math.pi/3, -math.pi/4]),
-            np.array([-math.pi/3, -math.pi/5, -math.pi / \
-                      8, -math.pi/4, -math.pi/6, -math.pi/7]),
+            np.array([-math.pi/8, math.pi/3, math.pi/4, math.pi/5, math.pi/6, -math.pi/7]),
+            np.array([-math.pi/7, math.pi/6, -math.pi/5, math.pi/4, math.pi/3, -math.pi/8]),
+            np.array([math.pi/5, math.pi/3, math.pi/4, math.pi/8, math.pi/7, math.pi/6]),
+            np.array([-math.pi/5, math.pi/6, -math.pi/7, math.pi/8, math.pi/3, -math.pi/4]),
+            np.array([-math.pi/3, -math.pi/5, -math.pi /8, -math.pi/4, -math.pi/6, -math.pi/7]),
         ],
-        quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
-        delta=np.array([0.001, -0.001, 0.001, -0.001, 0.001]),
-        p_x=np.array([0.2, -0.2, 0.2]), p_y=np.array([-0.1, -0.2, 0.2, -0.2]), p_z=np.array([0.2, -0.2, 0.2, -0.2]),
-        phi_x=np.array([0.02]), phi_y=np.array([0.02, -0.02, 0.02, -0.02, 0.02, -0.02]), phi_z=np.array([0.02, -0.02, 0.02])
+        quater = np.array([0.9998, 0.0100, 0.0098, 0.0100]),
+        delta = np.array([0.001, -0.001, 0.001, -0.001, 0.001]),
+        p_x = np.array([0.2, -0.2, 0.2]), p_y = np.array([-0.1, -0.2, 0.2, -0.2]), p_z = np.array([0.2, -0.2, 0.2, -0.2]),
+        phi_x = np.array([0.02]), phi_y = np.array([0.02, -0.02, 0.02, -0.02, 0.02, -0.02]), phi_z = np.array([0.02, -0.02, 0.02])
     ):
         # action encodes the calibration parameters (positional and rotational)
-        # self._action_space = spaces.Dict({
-        #   'position'   : gym.spaces.Box(low = -0.5, high = 0.5, shape=(11,), dtype='float32'),
-        #   'orientation': gym.spaces.Box(low = -0.03, high = 0.03, shape=(15,), dtype='float32')
-        # })
         self.pos = 0.300
         self.ori = 0.030
         self.action_space = spaces.Box(
@@ -57,8 +48,7 @@ class CalibrationEnv(gym.Env):
         # the observation encodes the x, y, z position of the end effector and the joint angles
         self.observation_space = spaces.Box(
             np.array(
-                [-2*math.pi, -2*math.pi, -2*math.pi, -
-                    2*math.pi, -2*math.pi, -2*math.pi]
+                [-2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]
             ),
             np.array(
                 [2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]
@@ -159,7 +149,7 @@ class CalibrationEnv(gym.Env):
 
     def setup_joints(self):
         """
-          pertubate the joint angles for the reset function and computes the goal position
+            pertubate the joint angles for the reset function and computes the goal position
         """
         if self.rand == 0:
             self._i = (self._i + 1) % len(self._config)
@@ -192,8 +182,8 @@ class CalibrationEnv(gym.Env):
     def get_position(self, action=None, noise=False):
         """
           Return the end effector position
-          :param action: (np.ndarray) the calibration parameters 
-          :return: (np.ndarray) the position of the end effector
+            :param action: (np.ndarray) the calibration parameters 
+            :return: (np.ndarray) the position of the end effector
         """
         if action is None:
             action = self._default_action
@@ -203,10 +193,11 @@ class CalibrationEnv(gym.Env):
         self._p_z[0] = action[2]
         self._quater = action[3:]
 
-        FK = Kinematics(quater=self._quater,
-                        delta=self._delta, p_x=self._p_x, p_y=self._p_y, p_z=self._p_z,
-                        phi_x=self._phi_x, phi_y=self._phi_y, phi_z=self._phi_z
-                        )
+        FK = Kinematics(
+            quater=self._quater,
+            delta=self._delta, p_x=self._p_x, p_y=self._p_y, p_z=self._p_z,
+            phi_x=self._phi_x, phi_y=self._phi_y, phi_z=self._phi_z
+        )
 
         noise = (2 * np.random.rand() - 1.) * 0.03
         pos = FK.forward_kinematics(q = self._q)[0]
@@ -216,9 +207,9 @@ class CalibrationEnv(gym.Env):
 
     def get_observation(self, action=None):
         """
-          Return the environment observation
-          :param action: (np.ndarray) the calibration parameters 
-          :return: (np.ndarray) the environment observation
+            Return the environment observation
+                :param action: (np.ndarray) the calibration parameters 
+                :return: (np.ndarray) the environment observation
         """
         if action is None:
             action = self._default_action
@@ -229,15 +220,15 @@ class CalibrationEnv(gym.Env):
 
     def distance_to_goal(self, action):
         """
-          Compute the distance to the goal
-          :param action: (np.ndarray) the calibration parameters 
+            Compute the distance to the goal
+                :param action: (np.ndarray) the calibration parameters 
         """
         return LA.norm(self.get_position(action) - self._goal_pos)
 
     def compute_reward(self, action):
         """
-          Compute the reward value for the step function
-          :param action: (np.ndarray) the calibration parameters 
+            Compute the reward value for the step function
+                :param action: (np.ndarray) the calibration parameters 
         """
 
         if self.all_config == True:
@@ -270,9 +261,9 @@ class CalibrationEnv(gym.Env):
 
     def compute_done(self, action):
         """
-          Compute the done boolean for the step function
-          :param reward: (float) the reward of the given step 
-          :return: (float) the done flag
+            Compute the done boolean for the step function
+                :param reward: (float) the reward of the given step 
+                :return: (float) the done flag
         """
         self._count += 1
         done = False
