@@ -3,7 +3,7 @@ import importlib
 import os
 import sys
 import configparser
-import json 
+import json
 import gym
 
 import numpy as np
@@ -19,11 +19,13 @@ from deep_calibration.utils.exp_manager import ExperimentManager
 from deep_calibration.utils.utils import StoreDict
 from deep_calibration import script_dir
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     build_args(parser)
     args, unknown_args = parser.parse_known_args()
     return args, unknown_args
+
 
 def build_args(parser):
     """
@@ -31,40 +33,43 @@ def build_args(parser):
         :param parser: (parser) the parser to which the arguments are added
         :return: (parser) The modified parser
     """
+    parser.add_argument("--config", "--configs", help="config file name",
+                        type=str, metavar="CONFIG_NAME", dest="config", required=True)
+    parser.add_argument("--algo", type=str, default=None,
+                        dest="algo", help="algorithm", required=True)
+    parser.add_argument("-optimize", "--optimize-hyperparameters", action="store_true",
+                        default=False, dest="optimize", help="Run hyperparameters search")
     parser.add_argument(
-        "--config","--configs", help = "config file name", type = str, metavar = "CONFIG_NAME", dest = "config", required = True
-    )
-    parser.add_argument("--algo", type = str, default=None, dest = "algo", help = "algorithm", required = True)
-    parser.add_argument(
-    "-optimize", "--optimize-hyperparameters", action="store_true", default=False, dest = "optimize",  help="Run hyperparameters search"
-    )
-    parser.add_argument("--exp-id", help="Experiment ID (default: 0: latest, -1: no exp folder)", default=0, type=int)
-    parser.add_argument("--load-best", action="store_true", default=False, help="Load best model instead of last model if available")
+        "--exp-id", help="Experiment ID (default: 0: latest, -1: no exp folder)", default=0,
+        type=int)
+    parser.add_argument("--load-best", action="store_true", default=False,
+                        help="Load best model instead of last model if available")
     parser.add_argument("--seed", help="Random generator seed", type=int, default=0)
 
     return parser
 
+
 def std(data, mean):
-  n = len(data) 
-  deviations = [(x - mean) ** 2 for x in data]
-  std = sum(deviations) / n
-  std = np.sqrt(std)
-  return std
+    n = len(data)
+    deviations = [(x - mean) ** 2 for x in data]
+    std = sum(deviations) / n
+    std = np.sqrt(std)
+    return std
+
 
 def main(args, unknown_args):  # noqa: C901
 
+    # path to the configuration file
+    path = os.path.join(script_dir, 'configs', args.config)
 
-    # path to the configuration file 
-    path = os.path.join(script_dir,'configs', args.config)
-    
-    # check if the algorithm is implemented     
-    if  args.algo not in ALGOS:   
+    # check if the algorithm is implemented
+    if args.algo not in ALGOS:
         raise NotImplementedError('the algorithm specified has not been recognized !!')
 
-    # parsing the config file and the args parser 
+    # parsing the config file and the args parser
     config_file = configparser.ConfigParser()
     config_file.read(path)
-    n_timesteps = config_file.getint('ADAPT','total_timesteps')
+    n_timesteps = config_file.getint('ADAPT', 'total_timesteps')
     env_id = config_file['ADAPT']['environment']
     n_eval_episodes = 5
     n_eval_test = 5
@@ -72,7 +77,7 @@ def main(args, unknown_args):  # noqa: C901
     n_trials = 20
 
     # Create the saving directory
-    log_folder = os.path.join(script_dir,'saved_models')
+    log_folder = os.path.join(script_dir, 'saved_models')
 
     algo = args.algo
     folder = log_folder
@@ -89,7 +94,6 @@ def main(args, unknown_args):  # noqa: C901
 
     assert os.path.isdir(log_path), f"The {log_path} folder was not found"
 
-
     if args.load_best:
         model_path = os.path.join(log_path, "best_model.zip")
         found = os.path.isfile(model_path)
@@ -104,7 +108,6 @@ def main(args, unknown_args):  # noqa: C901
 
     set_random_seed(args.seed)
 
-
     stats_path = os.path.join(log_path, env_id)
     hyperparams, stats_path = get_saved_hyperparams(stats_path, norm_reward=False, test_mode=True)
 
@@ -116,7 +119,7 @@ def main(args, unknown_args):  # noqa: C901
             loaded_args = yaml.load(f, Loader=yaml.UnsafeLoader)  # pytype: disable=module-attr
             if loaded_args["env_kwargs"] is not None:
                 env_kwargs = loaded_args["env_kwargs"]
- 
+
     env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_path)
     eval_env = NormalizeActionWrapper(env)
 
@@ -148,14 +151,13 @@ def main(args, unknown_args):  # noqa: C901
         actions = []
         for i in range(n_eval_episodes):
             obs = eval_env.reset()
-            action = best_model.predict(obs, deterministic = True)[0]
+            action = best_model.predict(obs, deterministic=True)[0]
             action = eval_env.rescale_action(action)
             actions.append(action)
             dist = eval_env.distance_to_goal(action)
             print(f'distance to goal for config {i} = {dist:.6f}')
             dists.append(dist)
             # print(f'parameters for config {i} is {action}')
-
 
         print(f'mean distance = {np.mean(dists):.6f}')
 
@@ -164,24 +166,24 @@ def main(args, unknown_args):  # noqa: C901
         print(f'best distance = {dists[ind]:.6f}')
         print(f'best action =  {best_action}')
 
-        std_actions = std( actions , best_action) 
+        std_actions = std(actions, best_action)
 
         print(f'std actions =  {std_actions}')
-        print('########################################################')
+        # print('########################################################')
 
-        for i, action in enumerate(actions):
-            print(f'config {i}')
-            print(f'action = {action}')
-            std_actions = std( actions , action) 
-            print(f'std actions =  {std_actions}')
-            dists = []
-            for i in range(n_eval_episodes):
-                obs = eval_env.reset()
-                dist = eval_env.distance_to_goal(action)
-                dists.append(dist)
-                print(f'distance to goal for config {i} = {dist:.6f}')
-            print(f'mean distance =  {np.mean(dists):.6f}')
-
+        # # testing each action for each configuration
+        # for i, action in enumerate(actions):
+        #     print(f'config {i}')
+        #     print(f'action = {action}')
+        #     std_actions = std( actions , action)
+        #     print(f'std actions =  {std_actions}')
+        #     dists = []
+        #     for i in range(n_eval_episodes):
+        #         obs = eval_env.reset()
+        #         dist = eval_env.distance_to_goal(action)
+        #         dists.append(dist)
+        #         print(f'distance to goal for config {i} = {dist:.6f}')
+        #     print(f'mean distance =  {np.mean(dists):.6f}')
 
         # # testing for random configurations
         # eval_env.rand = 1
@@ -199,7 +201,6 @@ def main(args, unknown_args):  # noqa: C901
 
     except KeyboardInterrupt:
         pass
-
 
 
 if __name__ == "__main__":

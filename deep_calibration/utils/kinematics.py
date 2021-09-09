@@ -15,17 +15,17 @@ class Kinematics:
 
     def __init__(
         self,
-        quater = None,
-        delta = np.zeros(5),
-        p_x = np.zeros(3),
-        p_y = np.zeros(4),
-        p_z = np.zeros(4),
-        phi_x = np.zeros(1),
-        phi_y = np.zeros(6),
-        phi_z = np.zeros(3),
-        p_base = None,
-        R_base = None,
-        p_tool = None,
+        quater=None,
+        delta=np.zeros(5),
+        p_x=np.zeros(3),
+        p_y=np.zeros(4),
+        p_z=np.zeros(4),
+        phi_x=np.zeros(1),
+        phi_y=np.zeros(6),
+        phi_z=np.zeros(3),
+        p_base=None,
+        R_base=None,
+        p_tool=None,
     ):
 
         # DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
@@ -78,64 +78,64 @@ class Kinematics:
     def Rx(self, theta):
         return np.array(
             [
-				[1, 0, 0, 0], 
-				[0, np.cos(theta), -np.sin(theta), 0], 
-				[0, np.sin(theta), np.cos(theta), 0], 
-				[0, 0, 0, 1]
-			]
+                [1, 0, 0, 0],
+                [0, np.cos(theta), -np.sin(theta), 0],
+                [0, np.sin(theta), np.cos(theta), 0],
+                [0, 0, 0, 1]
+            ]
         )
 
     def Ry(self, theta):
         return np.array(
             [
-				[np.cos(theta), 0, np.sin(theta), 0], 
-				[0, 1, 0, 0], 
-				[-np.sin(theta), 0, np.cos(theta), 0], 
-				[0, 0, 0, 1]
-			]
+                [np.cos(theta), 0, np.sin(theta), 0],
+                [0, 1, 0, 0],
+                [-np.sin(theta), 0, np.cos(theta), 0],
+                [0, 0, 0, 1]
+            ]
         )
 
     def Rz(self, theta):
         return np.array(
             [
-				[np.cos(theta), -np.sin(theta), 0, 0], 
-				[np.sin(theta), np.cos(theta), 0, 0], 
-				[0, 0, 1, 0], 
-				[0, 0, 0, 1]
-			]
+                [np.cos(theta), -np.sin(theta), 0, 0],
+                [np.sin(theta), np.cos(theta), 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ]
         )
 
     def Tx(self, x):
         return np.array(
-			[
-				[1, 0, 0, x], 
-				[0, 1, 0, 0], 
-				[0, 0, 1, 0], 
-				[0, 0, 0, 1]
-			]
-		)
+            [
+                [1, 0, 0, x],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ]
+        )
 
     def Ty(self, y):
         return np.array(
-			[
-				[1, 0, 0, 0], 
-				[0, 1, 0, y], 
-				[0, 0, 1, 0], 
-				[0, 0, 0, 1]
-			]
-		)
+            [
+                [1, 0, 0, 0],
+                [0, 1, 0, y],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ]
+        )
 
     def Tz(self, z):
         return np.array(
-			[
-				[1, 0, 0, 0], 
-				[0, 1, 0, 0], 
-				[0, 0, 1, z], 
-				[0, 0, 0, 1]
-			]
-		)
+            [
+                [1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 1, z],
+                [0, 0, 0, 1]
+            ]
+        )
 
-    def forward_kinematics(self, k = None, j = None, q = np.array([0, 0, 0, 0, 0, 0])):
+    def forward_kinematics(self, k=None, j=None, q=np.array([0, 0, 0, 0, 0, 0])):
         """
         Computes the forward kinematics of the UR10 arm robot
                 :param q: (np.ndarray) the joint angles
@@ -148,7 +148,11 @@ class Kinematics:
             H_base[0][:3, 3] = self.p_base
         else:
             if self.quater is not None:
-                self.quater = np.quaternion(self.quater[0], self.quater[1], self.quater[2], self.quater[3])
+                self.quater = np.quaternion(
+                    self.quater[0],
+                    self.quater[1],
+                    self.quater[2],
+                    self.quater[3])
                 H_base = [
                     self.Tx(self.calib_prms["base"]["p_x"]),
                     self.Ty(self.calib_prms["base"]["p_y"]),
@@ -203,7 +207,9 @@ class Kinematics:
         H_56 = [self.Rx(q[5] + self.calib_prms["joint6"]["delta_x"])]
 
         H_tool = [np.identity(4)]
-        if self.p_tool is not None and j is not None:
+        if j is not None:
+            if self.p_tool is None:
+                raise ValueError('p_tool should be defined to use j index')
             H_tool[0][:3, 3] = self.p_tool[j]
 
         H_total = H_base + H_01 + H_12 + H_23 + H_34 + H_45 + H_56 + H_tool
