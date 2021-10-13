@@ -1,8 +1,10 @@
 import numpy as np
 import math
+import os
 
 from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration.utils.jacobian import Jacobian
+from numpy import linalg as LA
 
 from deep_calibration import script_dir
 
@@ -27,29 +29,58 @@ class Calibration:
             np.array([-math.pi / 8, -math.pi / 2, -math.pi / 4, -math.pi / 2, -math.pi / 6, -math.pi / 7]),
             np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 1, -math.pi / 2, -math.pi / 7]),
             np.array([-math.pi / 3, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 8]),
+
+            # np.array([-math.pi / 2, math.pi / 3, math.pi / 4, math.pi / 8, math.pi / 6, -math.pi / 1]),
+            # np.array([-math.pi / 7, math.pi / 2, -math.pi / 5, math.pi / 6, math.pi / 3, -math.pi / 5]),
+            # np.array([math.pi / 6, math.pi / 3, math.pi / 8, math.pi / 8, math.pi / 3, math.pi / 6]),
+            # np.array([-math.pi / 2, math.pi / 6, -math.pi / 1, math.pi / 8, math.pi / 5, -math.pi / 4]),
+            # np.array([-math.pi / 2, -math.pi / 5, -math.pi / 4, -math.pi / 4, -math.pi / 9, -math.pi / 7]),
+            # np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 2, -math.pi / 1, -math.pi / 7]),
+            # np.array([-math.pi / 5, -math.pi / 5, -math.pi / 4, -math.pi / 2, -math.pi / 2, -math.pi / 9]),
+            # np.array([-math.pi / 3, -math.pi / 2, -math.pi / 8, -math.pi / 2, -math.pi / 3, -math.pi / 7]),
+            # np.array([-math.pi / 5, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 7]),
+            # np.array([-math.pi / 6, -math.pi / 5, -math.pi / 4, -math.pi / 9, -math.pi / 3, -math.pi / 8]),
         ],
 
         p_tool=[
-            np.array([277.23, -46.53, -93.87]),
-            np.array([276.49, -48.25, 94.05]),
-            np.array([278.44, 103.73, -2.17]),
+            np.array([277.23, -46.53, -93.87]) * 0.001,
+            np.array([276.49, -48.25, 94.05]) * 0.001,
+            np.array([278.44, 103.73, -2.17]) * 0.001,
         ],
     ):
+        self._p_tool = p_tool
         self._configs = configs  # robot configurations used for calibration
         self._n = 3  # number of tools used for calibration
         self._c = len(self._configs)  # number of robot configurations
-        self._m = self._c * 10
-        self._FK = Kinematics(p_tool=p_tool)
+        self._m = self._c
+        self._noise_std = 0.03 * 0.001
+        self._FK = Kinematics(
+            p_tool=p_tool, delta=np.array([0.0000, -0.0000, 0.0000, -0.0000, 0.0000])
+        )
+        self._goal_position = [
+            np.array(
+                [
+                    self.p_robot(i, j=0),
+                    self.p_robot(i, j=1),
+                    self.p_robot(i, j=2),
+                ]
+            )
+            for i in range(self._c)
+        ]  # goal position without noise
+
         self._p_ij = self.build_p_ij()
         self._FK = Kinematics(p_base=np.zeros(3), R_base=np.identity(3))
+
+    def noise(self):
+        return (2 * np.random.rand() - 1.0) * self._noise_std
 
     def build_p_ij(self):
         return [
             np.array(
                 [
-                    self.p_robot(i, j=0) + (2 * np.random.rand() - 1.0) * 0.3,
-                    self.p_robot(i, j=1) + (2 * np.random.rand() - 1.0) * 0.3,
-                    self.p_robot(i, j=2) + (2 * np.random.rand() - 1.0) * 0.3,
+                    self.p_robot(i, j=0) + self.noise(),
+                    self.p_robot(i, j=1) + self.noise(),
+                    self.p_robot(i, j=2) + self.noise(),
                 ]
             )
             for i in range(self._m)
@@ -60,7 +91,7 @@ class Calibration:
 
     def skew(self, phi):
         """
-        Computes the skew symetric matrix of a certain set of angles
+            Computes the skew symetric matrix of a certain set of angles
                 :param qhi: (np.ndarray) the angles
                 :return: (np.ndarray) the skew symetric matrix
         """
@@ -94,7 +125,7 @@ class Calibration:
 
     def identity_base_tool(self):
         """
-        Identify the tool and base parameters
+            Identify the tool and base parameters
                 :return: (np.ndarray) the base positional and rotoational parameters and the tool parameters
         """
         res1 = 0
@@ -117,11 +148,13 @@ class Calibration:
 
     def identify_calib_prms(self, p_base, R_base, p_tool):
         """
-        Identify the calibration parameters
+            Identify the calibration parameters
                 :param p_base, R_base, p_tool: (np.ndarray) base and tool parameters identified in the 1st step
                 :return: (np.ndarray) the calibration parameters
         """
+        self._FK = Kinematics(p_base=p_base, R_base=R_base, p_tool=p_tool)
         jacob = Jacobian(p_base=p_base, R_base=R_base, p_tool=p_tool)
+
         res1 = 0
         res2 = 0
         for i in range(self._m):
@@ -129,8 +162,8 @@ class Calibration:
                 J_ij = jacob.build_jacobian(q=self.config(i), j=j)
                 res1 += np.dot(J_ij.transpose(), J_ij)
                 res2 += np.dot(J_ij.transpose(), self.delta_p(i=i, j=j))
-                # print('jacobian=\n', J_ij)
 
+        # print(LA.cond(res1, np.inf))
         res = np.dot(np.linalg.inv(res1), res2)
         return res
 
@@ -142,21 +175,26 @@ def main():
 
     # step 1 identification of p_base, phi_base and u_tool
     p_base, R_base, p_tool = calib.identity_base_tool()
-    print('calibration parameters:', p_base, R_base, p_tool)
+    print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
 
     # step 2 identification of the calibration parameters
-    calib._FK = Kinematics(p_base=p_base, R_base=R_base, p_tool=p_tool)
+    # p_base = None
+    # R_base = None
+    # p_tool = calib._p_tool
     calib_prms = calib.identify_calib_prms(p_base=p_base, R_base=R_base, p_tool=p_tool)
     print('calib_prms:', calib_prms)
 
     with open(f"{script_dir}/calibration/p_ij.npy", 'wb') as f:
+        f.truncate(0)
         np.save(f, {
             'p_ij': calib._p_ij,
             'p_base': p_base,
             'R_base': R_base,
             'p_tool': p_tool,
             'calib_prms': calib_prms,
+            'goal_position': calib._goal_position,
         }, allow_pickle=True)
+    f.close()
 
 
 if __name__ == "__main__":

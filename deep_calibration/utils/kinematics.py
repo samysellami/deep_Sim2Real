@@ -16,13 +16,13 @@ class Kinematics:
     def __init__(
         self,
         quater=None,
+        base=np.zeros(6),
         delta=np.zeros(5),
-        p_x=np.zeros(3),
-        p_y=np.zeros(4),
-        p_z=np.zeros(4),
-        phi_x=np.zeros(1),
-        phi_y=np.zeros(6),
-        phi_z=np.zeros(3),
+        p_x=np.zeros(2),
+        p_y=np.zeros(3),
+        p_z=np.zeros(3),
+        phi_y=np.zeros(5),
+        phi_z=np.zeros(2),
         p_base=None,
         R_base=None,
         p_tool=None,
@@ -31,12 +31,12 @@ class Kinematics:
         # DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
         self.DH = np.array(
             [
-                [0, -math.pi / 2, 128, 0],
-                [612.7, 0, 0, 0],
-                [571.6, 0, 0, 0],
-                [0, -math.pi / 2, 163.9, 0],
-                [0, math.pi / 2, 115.7, 0],
-                [0, 0, 92.2, 0],
+                [0, -math.pi / 2, 0.128, 0],
+                [0.6127, 0, 0, 0],
+                [0.5716, 0, 0, 0],
+                [0, -math.pi / 2, 0.1639, 0],
+                [0, math.pi / 2, 0.1157, 0],
+                [0, 0, 0.0922, 0],
             ]
         )
 
@@ -50,18 +50,18 @@ class Kinematics:
         # calibration parameters
         self.calib_prms = {
             "base": {
-                "p_x": p_x[0],
-                "p_y": p_y[0],
-                "p_z": p_z[0],
-                "phi_x": phi_x[0],
-                "phi_y": phi_y[0],
-                "phi_z": phi_z[0],
+                "p_x": base[0],
+                "p_y": base[1],
+                "p_z": base[2],
+                "phi_x": base[3],
+                "phi_y": base[4],
+                "phi_z": base[5],
             },
-            "joint1": {"p_x": p_x[1], "p_y": p_y[1], "phi_y": phi_y[1]},
-            "joint2": {"delta_x": delta[0], "p_z": p_z[1], "phi_y": phi_y[2], "phi_z": phi_z[1]},
-            "joint3": {"delta_x": delta[1], "p_z": p_z[2], "phi_y": phi_y[3], "phi_z": phi_z[2]},
-            "joint4": {"delta_x": delta[2], "p_y": p_y[2], "p_z": p_z[3], "phi_y": phi_y[4]},
-            "joint5": {"delta_z": delta[3], "p_x": p_x[2], "p_y": p_y[3], "phi_y": phi_y[5]},
+            "joint1": {"p_x": p_x[0], "p_y": p_y[0], "phi_y": phi_y[0]},
+            "joint2": {"delta_x": delta[0], "p_z": p_z[0], "phi_y": phi_y[1], "phi_z": phi_z[0]},
+            "joint3": {"delta_x": delta[1], "p_z": p_z[1], "phi_y": phi_y[2], "phi_z": phi_z[1]},
+            "joint4": {"delta_x": delta[2], "p_y": p_y[1], "p_z": p_z[2], "phi_y": phi_y[3]},
+            "joint5": {"delta_z": delta[3], "p_x": p_x[1], "p_y": p_y[2], "phi_y": phi_y[4]},
             "joint6": {"delta_x": delta[4]},
         }
         self.quater = quater
@@ -178,7 +178,7 @@ class Kinematics:
 
         H_12 = [
             self.Rx(q[1] + self.calib_prms["joint2"]["delta_x"]),
-            self.Tz(self.DH_used["joint1"] + self.calib_prms["joint2"]["p_z"]),
+            self.Tz(self.DH_used["joint2"] + self.calib_prms["joint2"]["p_z"]),
             self.Ry(self.calib_prms["joint2"]["phi_y"]),
             self.Rz(self.calib_prms["joint2"]["phi_z"]),
         ]

@@ -24,7 +24,8 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
       It must contains the file created by the ``Monitor`` wrapper.
     :param verbose: (int)
     """
-    def __init__(self, check_freq, log_dir, verbose = 1):
+
+    def __init__(self, check_freq, log_dir, verbose=1):
         super(SaveOnBestTrainingRewardCallback, self).__init__(verbose)
         self.check_freq = check_freq
         self.log_dir = log_dir
@@ -39,23 +40,24 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
     def _on_step(self) -> bool:
         if self.n_calls % self.check_freq == 0:
 
-          # Retrieve training reward
-          x, y = ts2xy(load_results(self.log_dir), 'timesteps')
-          if len(x) > 0:
-              # Mean training reward over the last 100 episodes
-              mean_reward = np.mean(y[-1:])
-              if self.verbose > 0:
-                print("Num timesteps: {}".format(self.num_timesteps))
-                print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(self.best_mean_reward, mean_reward))
+            # Retrieve training reward
+            x, y = ts2xy(load_results(self.log_dir), 'timesteps')
+            if len(x) > 0:
+                # Mean training reward over the last 100 episodes
+                mean_reward = np.mean(y[-1:])
+                if self.verbose > 0:
+                    print("Num timesteps: {}".format(self.num_timesteps))
+                    print(
+                        "Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(self.best_mean_reward, mean_reward))
 
-              # New best model, you could save the agent here
-              if mean_reward > self.best_mean_reward:
-                  self.best_mean_reward = mean_reward
-                  # Example for saving best model
-                  if self.verbose > 0:
-                    print("Saving new best model at {} timesteps".format(x[-1]))
-                    print("Saving new best model to {}.zip".format(self.save_path))
-                  self.model.save(self.save_path)
+                # New best model, you could save the agent here
+                if mean_reward > self.best_mean_reward:
+                    self.best_mean_reward = mean_reward
+                    # Example for saving best model
+                    if self.verbose > 0:
+                        print("Saving new best model at {} timesteps".format(x[-1]))
+                        print("Saving new best model to {}.zip".format(self.save_path))
+                    self.model.save(self.save_path)
 
         return True
 
@@ -66,36 +68,36 @@ class PlottingCallback(BaseCallback):
 
     :param verbose: (int)
     """
-    def __init__(self, log_dir, verbose = 1):
+
+    def __init__(self, log_dir, verbose=1):
         super(PlottingCallback, self).__init__(verbose)
         self._plot = None
         self.log_dir = log_dir
 
-
     def _on_step(self) -> bool:
         # get the monitor's data
         x, y = ts2xy(load_results(self.log_dir), 'timesteps')
-        if self._plot is None: # make the plot
+        if self._plot is None:  # make the plot
             plt.ion()
-            fig = plt.figure(figsize=(6,3))
+            fig = plt.figure(figsize=(6, 3))
             ax = fig.add_subplot(111)
             line, = ax.plot(x, y)
             self._plot = (line, ax, fig)
             plt.show()
-        else: # update and rescale the plot
+        else:  # update and rescale the plot
             self._plot[0].set_data(x, y)
             self._plot[-2].relim()
-            self._plot[-2].set_xlim([self.locals["total_timesteps"] * -0.02, 
+            self._plot[-2].set_xlim([self.locals["total_timesteps"] * -0.02,
                                      self.locals["total_timesteps"] * 1.02])
-            self._plot[-2].autoscale_view(True,True,True)
+            self._plot[-2].autoscale_view(True, True, True)
             self._plot[-1].canvas.draw()
-
 
 
 class ProgressBarCallback(BaseCallback):
     """
     :param pbar: (tqdm.pbar) Progress bar object
     """
+
     def __init__(self, pbar):
         super(ProgressBarCallback, self).__init__()
         self._pbar = pbar
@@ -106,17 +108,19 @@ class ProgressBarCallback(BaseCallback):
         self._pbar.update(0)
 
 # this callback uses the 'with' block, allowing for correct initialisation and destruction
+
+
 class ProgressBarManager(object):
-    def __init__(self, total_timesteps): # init object with total timesteps
+    def __init__(self, total_timesteps):  # init object with total timesteps
         self.pbar = None
         self.total_timesteps = total_timesteps
-        
-    def __enter__(self): # create the progress bar and callback, return the callback
+
+    def __enter__(self):  # create the progress bar and callback, return the callback
         self.pbar = tqdm(total=self.total_timesteps)
-            
+
         return ProgressBarCallback(self.pbar)
 
-    def __exit__(self, exc_type, exc_val, exc_tb): # close the callback
+    def __exit__(self, exc_type, exc_val, exc_tb):  # close the callback
         self.pbar.n = self.total_timesteps
         self.pbar.update(0)
         self.pbar.close()
@@ -184,7 +188,9 @@ class EvalCallback(EventCallback):
     def _init_callback(self) -> None:
         # Does not work in some corner cases, where the wrapper is not the same
         if not isinstance(self.training_env, type(self.eval_env)):
-            warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
+            warnings.warn(
+                "Training and eval env are not of the same type"
+                f"{self.training_env} != {self.eval_env}")
 
         # Create folders if needed
         if self.best_model_save_path is not None:
@@ -223,13 +229,15 @@ class EvalCallback(EventCallback):
             self.last_mean_reward = mean_reward
 
             if self.verbose > 0:
-                print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+                print(
+                    f"Eval num_timesteps={self.num_timesteps}, "
+                    f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
                 print(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
             # Add to current Logger
             self.logger.record("eval/mean_reward", float(mean_reward))
             self.logger.record("eval/mean_ep_length", mean_ep_length)
 
-            dists = [10/reward for reward in episode_rewards]
+            dists = [1/reward for reward in episode_rewards]
             mean_dist = np.mean(dists)
             mean_reward = 1/mean_dist
             self.last_mean_reward = mean_reward
@@ -238,11 +246,12 @@ class EvalCallback(EventCallback):
                 if self.verbose > 0:
                     print("New best mean reward!")
 
-                print(f"New best mean reward: {mean_reward:.4f} with mean distance: {mean_dist:.4f}")
+                print(
+                    f"New best mean reward: {mean_reward:.7f} with mean distance: {mean_dist:.7f}")
                 self.best_mean_reward = mean_reward
-                
+
                 if self.best_model_save_path is not None and self.best_mean_reward > self.best_reward:
-                    self.best_reward = self.best_mean_reward  
+                    self.best_reward = self.best_mean_reward
                     self.model.save(os.path.join(self.best_model_save_path, "best_model"))
                     with open(f"{self.best_model_save_path}/best_reward.npy", 'wb') as f:
                         np.save(f, np.array([self.best_reward]))
@@ -261,11 +270,6 @@ class EvalCallback(EventCallback):
         """
         if self.callback:
             self.callback.update_locals(locals_)
-
-
-
-
-
 
 
 class TrialEvalCallback(EvalCallback):
@@ -292,8 +296,8 @@ class TrialEvalCallback(EvalCallback):
             eval_freq=eval_freq,
             deterministic=deterministic,
             verbose=verbose,
-            best_model_save_path = best_model_save_path,
-            log_path = log_path
+            best_model_save_path=best_model_save_path,
+            log_path=log_path
         )
         self.trial = trial
         self.eval_idx = 0
@@ -323,7 +327,8 @@ class SaveVecNormalizeCallback(BaseCallback):
         only one file will be kept.
     """
 
-    def __init__(self, save_freq: int, save_path: str, name_prefix: Optional[str] = None, verbose: int = 0):
+    def __init__(
+            self, save_freq: int, save_path: str, name_prefix: Optional[str] = None, verbose: int = 0):
         super(SaveVecNormalizeCallback, self).__init__(verbose)
         self.save_freq = save_freq
         self.save_path = save_path
@@ -337,7 +342,8 @@ class SaveVecNormalizeCallback(BaseCallback):
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
             if self.name_prefix is not None:
-                path = os.path.join(self.save_path, f"{self.name_prefix}_{self.num_timesteps}_steps.pkl")
+                path = os.path.join(
+                    self.save_path, f"{self.name_prefix}_{self.num_timesteps}_steps.pkl")
             else:
                 path = os.path.join(self.save_path, "vecnormalize.pkl")
             if self.model.get_vec_normalize_env() is not None:

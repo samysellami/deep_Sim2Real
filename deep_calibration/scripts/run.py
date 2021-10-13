@@ -71,7 +71,7 @@ def main(args, unknown_args):  # noqa: C901
     config_file.read(path)
     n_timesteps = config_file.getint('ADAPT', 'total_timesteps')
     env_id = config_file['ADAPT']['environment']
-    n_eval_episodes = 5
+    n_eval_episodes = 10
     n_eval_test = 5
     eval_freq = 10
     n_trials = 20
@@ -155,15 +155,15 @@ def main(args, unknown_args):  # noqa: C901
             action = eval_env.rescale_action(action)
             actions.append(action)
             dist = eval_env.distance_to_goal(action)
-            print(f'distance to goal for config {i} = {dist:.6f}')
+            print(f'distance to goal for config {i} = {dist:.7f}')
             dists.append(dist)
             # print(f'parameters for config {i} is {action}')
 
-        print(f'mean distance = {np.mean(dists):.6f}')
+        print(f'mean distance = {np.mean(dists):.7f}')
 
         ind = np.argmin(dists)
         best_action = actions[ind]
-        print(f'best distance = {dists[ind]:.6f}')
+        print(f'best distance = {dists[ind]:.7f}')
         print(f'best action =  {best_action}')
 
         std_actions = std(actions, best_action)
