@@ -6,7 +6,7 @@ In order to increase the robot accuracy, we use deep learning based methods to i
 
 <!-- ![UR10](/images/UR10.png) -->
 <p align="center">
-  <img src="https://github.com/samysellami/Deep_Sim2Real/blob/master/images/UR10.png" width="100"/>
+  <img src="https://github.com/samysellami/Deep_Sim2Real/blob/master/images/UR10.png" width="300"/>
 </p>
 
 # Download & Setup Instructions
