@@ -4,7 +4,10 @@ Robot position accuracy plays a very important role in advanced industrial appli
 
 In order to increase the robot accuracy, we use deep learning based methods to identify the non-geometric error sources such as link compliance, gear backlash, and others, which are difficult to model correctly and completely. The algorithm is tested on simulation with the UR-10 robot
 
-![UR10](/images/UR10.png)
+<!-- ![UR10](/images/UR10.png) -->
+<p align="center">
+  <img src="https://github.com/samysellami/Deep_Sim2Real/blob/master/images/UR10.png" />
+</p>
 
 # Download & Setup Instructions
 
