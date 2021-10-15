@@ -53,8 +53,8 @@ class CalibrationEnv(gym.Env):
         phi_z=np.array([-0.02, 0.02])
     ):
         # the action encodes the calibration parameters (positional and rotational)
-        lim = 0.00005
-        # lim = 0.0005
+        lim = 0.00001
+        # lim = 0.0001
         self.action_space = spaces.Box(
             np.array(
                 [-lim, -lim, -lim, -lim, -lim]
@@ -100,6 +100,8 @@ class CalibrationEnv(gym.Env):
         self._all_config = True  # if True compute the mean distance to goal using all configurations
         self._from_p_ij = True  # if True compute the goal position from the real measurements data
         self._form_goal_pos = False  # if True compute the goal position from the real measurements data without noise
+        self._tune = False
+
         if self._from_p_ij:
             with open(f"{script_dir}/calibration/p_ij.npy", 'rb') as f:
                 self.identified_prms = np.load(f, allow_pickle=True).item()
@@ -141,12 +143,6 @@ class CalibrationEnv(gym.Env):
 
     def reset(self):
         # print('--------Episode reset--------')
-
-        # adding the configurations consecutively
-        # j = len(self._config)
-        # if self._count % 10000000 == 0 and j < len(self._configs):
-        #     print('--------changing configs --------')
-        #     self._config.append(self._configs[j])
 
         # if self._count % 10000 == 0:
         #   print(f'--------best actions --------: {self._best_action}')
@@ -223,7 +219,10 @@ class CalibrationEnv(gym.Env):
         if action is None:
             action = self._default_action
 
-        self._delta = action + self._calib_prms
+        if self._tune:
+            self._delta = action + self._calib_prms
+        else:
+            self._delta = action
 
         if self._from_p_ij:
             FK = Kinematics(

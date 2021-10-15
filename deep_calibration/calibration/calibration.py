@@ -53,9 +53,9 @@ class Calibration:
         self._n = 3  # number of tools used for calibration
         self._c = len(self._configs)  # number of robot configurations
         self._m = self._c
-        self._noise_std = 0.03 * 0.001
+        self._noise_std = 0.05 * 0.001
         self._FK = Kinematics(
-            p_tool=p_tool, delta=np.array([0.0000, -0.0000, 0.0000, -0.0000, 0.0000])
+            p_tool=p_tool, delta=np.array([0.0000, 0.0000, 0.0000, 0.0000, 0.0000])
         )
         self._goal_position = [
             np.array(

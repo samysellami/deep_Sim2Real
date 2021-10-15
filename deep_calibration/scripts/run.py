@@ -154,21 +154,27 @@ def main(args, unknown_args):  # noqa: C901
             action = best_model.predict(obs, deterministic=True)[0]
             action = eval_env.rescale_action(action)
             actions.append(action)
-            dist = eval_env.distance_to_goal(action)
+            dist = eval_env.distance_to_goal(action) * 1000
             print(f'distance to goal for config {i} = {dist:.7f}')
             dists.append(dist)
             # print(f'parameters for config {i} is {action}')
 
         print(f'mean distance = {np.mean(dists):.7f}')
 
-        ind = np.argmin(dists)
-        best_action = actions[ind]
-        print(f'best distance = {dists[ind]:.7f}')
-        print(f'best action =  {best_action}')
+        ind_min = np.argmin(dists)
+        ind_max = np.argmax(dists)
+        best_action = actions[ind_min]
+        worst_action = actions[ind_max]
 
-        std_actions = std(actions, best_action)
+        print(f'worst distance = {dists[ind_max]:.7f}')
+        # print(f'worst action =  {worst_action}')
 
-        print(f'std actions =  {std_actions}')
+        print(f'best distance = {dists[ind_min]:.7f}')
+        # print(f'best action =  {best_action}')
+
+        # std_actions = std(actions, best_action)
+        # print(f'std actions =  {std_actions}')
+
         # print('########################################################')
 
         # # testing each action for each configuration
