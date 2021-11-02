@@ -82,13 +82,6 @@ def main(args, unknown_args):
     with open(f"{script_dir}/saved_models/{args.algo}/best_reward.npy", 'wb') as f:
         np.save(f, np.array([-np.inf]))
 
-    # Create and wrap the environment
-    # env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_folder)
-    # eval_env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
-    # eval_env = NormalizeActionWrapper(eval_env)
-    # env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
-    # env = NormalizeActionWrapper(env)
-    # env = DummyVecEnv([lambda: env])
     np.set_printoptions(precision=5, suppress=True)
 
     # create the model
@@ -121,54 +114,63 @@ def main(args, unknown_args):
     return
 
     """""
-    model = ALGOS[args.algo](
-        'MlpPolicy', env, 
-        batch_size = batch_size, 
-        policy_kwargs = dict(net_arch = net_arch), 
-        verbose = 1, seed = seed, 
-    )
+    for i in range (10): this for loop is just for folding
+        # Create and wrap the environment
+        env = make_vec_env(env_name, n_envs = 1, monitor_dir = log_folder)
+        eval_env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
+        eval_env = NormalizeActionWrapper(eval_env)
+        env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_folder)
+        env = NormalizeActionWrapper(env)
+        env = DummyVecEnv([lambda: env])
+    
+        model = ALGOS[args.algo](
+            'MlpPolicy', env, 
+            batch_size = batch_size, 
+            policy_kwargs = dict(net_arch = net_arch), 
+            verbose = 1, seed = seed, 
+        )
 
-    # Create Callbacks and train the model
-    auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_folder, verbose = 1)
-    plotting_callback = PlottingCallback(log_dir = log_folder)
-    eval_callback = EvalCallback(eval_env, best_model_save_path = log_folder,
-                                log_path = log_folder, eval_freq = eval_freq, n_eval_episodes = n_eval_episodes,
-                                deterministic = True, render = False, verbose = 0)
+        # Create Callbacks and train the model
+        auto_save_callback = SaveOnBestTrainingRewardCallback(check_freq = 1, log_dir = log_folder, verbose = 1)
+        plotting_callback = PlottingCallback(log_dir = log_folder)
+        eval_callback = EvalCallback(eval_env, best_model_save_path = log_folder,
+                                    log_path = log_folder, eval_freq = eval_freq, n_eval_episodes = n_eval_episodes,
+                                    deterministic = True, render = False, verbose = 0)
 
-    with ProgressBarManager(n_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
-        model.learn(total_timesteps = n_timesteps, callback = [eval_callback, progress_callback])
-    del model
+        with ProgressBarManager(n_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
+            model.learn(total_timesteps = n_timesteps, callback = [eval_callback, progress_callback])
+        del model
 
-    # get the best predition from the best model
-    best_model = ALGOS[args.algo].load(log_folder + '/best_model')  
+        # get the best predition from the best model
+        best_model = ALGOS[args.algo].load(log_folder + '/best_model')  
 
-    # sample an observation from the environment and compute the action
-    dists = []
-    for i in range(n_eval_episodes):
-        obs = eval_env.reset()
-        action = best_model.predict(obs, deterministic = True)[0]
-        action = eval_env.rescale_action(action)
+        # sample an observation from the environment and compute the action
+        dists = []
+        for i in range(n_eval_episodes):
+            obs = eval_env.reset()
+            action = best_model.predict(obs, deterministic = True)[0]
+            action = eval_env.rescale_action(action)
 
-        dist = eval_env.distance_to_goal(action)
-        print(f'best distance to goal for config {i} is  {dist}')
-        dists.append(dist)
+            dist = eval_env.distance_to_goal(action)
+            print(f'best distance to goal for config {i} is  {dist}')
+            dists.append(dist)
 
-    # print("best calibration parameters: ", action)   
-    print('best mean distance: ', np.mean(dists))
+        # print("best calibration parameters: ", action)   
+        print('best mean distance: ', np.mean(dists))
 
-    # testing for random configurations
-    eval_env.rand = 1
-    dists = []
-    for i in range(n_eval_test):
-        obs = eval_env.reset()
-        action = best_model.predict(obs, deterministic = True)[0]
-        action = eval_env.rescale_action(action)
+        # testing for random configurations
+        eval_env.rand = 1
+        dists = []
+        for i in range(n_eval_test):
+            obs = eval_env.reset()
+            action = best_model.predict(obs, deterministic = True)[0]
+            action = eval_env.rescale_action(action)
 
-        dist = eval_env.distance_to_goal(action)
-        print(f'best distance to goal for a random config {i} is  {dist}')
-        dists.append(dist)
+            dist = eval_env.distance_to_goal(action)
+            print(f'best distance to goal for a random config {i} is  {dist}')
+            dists.append(dist)
 
-    print('best random mean distance: ', np.mean(dists))
+        print('best random mean distance: ', np.mean(dists))
 	"""
 
 

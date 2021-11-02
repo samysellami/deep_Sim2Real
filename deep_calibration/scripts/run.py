@@ -59,6 +59,12 @@ def std(data, mean):
 
 def main(args, unknown_args):  # noqa: C901
 
+    tune = False
+
+    with open(f"{script_dir}/calibration/p_ij.npy", 'rb') as f:
+        identified_prms = np.load(f, allow_pickle=True).item()
+        calib_prms = identified_prms['calib_prms']
+
     # path to the configuration file
     path = os.path.join(script_dir, 'configs', args.config)
 
@@ -144,7 +150,7 @@ def main(args, unknown_args):  # noqa: C901
 
     obs = env.reset()
 
-    np.set_printoptions(precision=5, suppress=True)
+    np.set_printoptions(precision=10, suppress=True)
     try:
         # sample an observation from the environment and compute the action
         dists = []
@@ -155,55 +161,28 @@ def main(args, unknown_args):  # noqa: C901
             action = eval_env.rescale_action(action)
             actions.append(action)
             dist = eval_env.distance_to_goal(action) * 1000
-            print(f'distance to goal for config {i} = {dist:.7f}')
+            print(f'distance to goal for config {i} = {dist:.6f}')
             dists.append(dist)
             # print(f'parameters for config {i} is {action}')
 
-        print(f'mean distance = {np.mean(dists):.7f}')
+        print(f'mean distance = {np.mean(dists):.6f}')
+
+        if tune:
+            actions = actions + calib_prms
 
         ind_min = np.argmin(dists)
         ind_max = np.argmax(dists)
         best_action = actions[ind_min]
         worst_action = actions[ind_max]
 
-        print(f'worst distance = {dists[ind_max]:.7f}')
-        # print(f'worst action =  {worst_action}')
+        print(f'worst distance = {dists[ind_max]:.6f}')
+        print(f'best distance = {dists[ind_min]:.6f}')
 
-        print(f'best distance = {dists[ind_min]:.7f}')
-        # print(f'best action =  {best_action}')
+        print(f'best action =  {best_action}')
+        print(f'worst action =  {worst_action}')
 
         # std_actions = std(actions, best_action)
         # print(f'std actions =  {std_actions}')
-
-        # print('########################################################')
-
-        # # testing each action for each configuration
-        # for i, action in enumerate(actions):
-        #     print(f'config {i}')
-        #     print(f'action = {action}')
-        #     std_actions = std( actions , action)
-        #     print(f'std actions =  {std_actions}')
-        #     dists = []
-        #     for i in range(n_eval_episodes):
-        #         obs = eval_env.reset()
-        #         dist = eval_env.distance_to_goal(action)
-        #         dists.append(dist)
-        #         print(f'distance to goal for config {i} = {dist:.6f}')
-        #     print(f'mean distance =  {np.mean(dists):.6f}')
-
-        # # testing for random configurations
-        # eval_env.rand = 1
-        # dists = []
-        # for i in range(n_eval_test):
-        #     obs = eval_env.reset()
-        #     action = best_model.predict(obs, deterministic = True)[0]
-        #     action = eval_env.rescale_action(action)
-
-        #     dist = eval_env.distance_to_goal(action)
-        #     print(f'best distance to goal for a random config {i} is  {dist}')
-        #     dists.append(dist)
-
-        # print('best random mean distance: ', np.mean(dists))
 
     except KeyboardInterrupt:
         pass

@@ -31,18 +31,6 @@ class CalibrationEnv(gym.Env):
             np.array([-math.pi / 8, -math.pi / 2, -math.pi / 4, -math.pi / 2, -math.pi / 6, -math.pi / 7]),
             np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 1, -math.pi / 2, -math.pi / 7]),
             np.array([-math.pi / 3, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 8]),
-
-            # np.array([-math.pi / 2, math.pi / 3, math.pi / 4, math.pi / 8, math.pi / 6, -math.pi / 1]),
-            # np.array([-math.pi / 7, math.pi / 2, -math.pi / 5, math.pi / 6, math.pi / 3, -math.pi / 5]),
-            # np.array([math.pi / 6, math.pi / 3, math.pi / 8, math.pi / 8, math.pi / 3, math.pi / 6]),
-            # np.array([-math.pi / 2, math.pi / 6, -math.pi / 1, math.pi / 8, math.pi / 5, -math.pi / 4]),
-            # np.array([-math.pi / 2, -math.pi / 5, -math.pi / 4, -math.pi / 4, -math.pi / 9, -math.pi / 7]),
-            # np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 2, -math.pi / 1, -math.pi / 7]),
-            # np.array([-math.pi / 5, -math.pi / 5, -math.pi / 4, -math.pi / 2, -math.pi / 2, -math.pi / 9]),
-            # np.array([-math.pi / 3, -math.pi / 2, -math.pi / 8, -math.pi / 2, -math.pi / 3, -math.pi / 7]),
-            # np.array([-math.pi / 5, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 7]),
-            # np.array([-math.pi / 6, -math.pi / 5, -math.pi / 4, -math.pi / 9, -math.pi / 3, -math.pi / 8]),
-
         ],
         quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
         delta=np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
@@ -53,8 +41,8 @@ class CalibrationEnv(gym.Env):
         phi_z=np.array([-0.02, 0.02])
     ):
         # the action encodes the calibration parameters (positional and rotational)
-        lim = 0.00001
         # lim = 0.0001
+        lim = 0.005
         self.action_space = spaces.Box(
             np.array(
                 [-lim, -lim, -lim, -lim, -lim]

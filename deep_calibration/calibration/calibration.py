@@ -29,17 +29,6 @@ class Calibration:
             np.array([-math.pi / 8, -math.pi / 2, -math.pi / 4, -math.pi / 2, -math.pi / 6, -math.pi / 7]),
             np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 1, -math.pi / 2, -math.pi / 7]),
             np.array([-math.pi / 3, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 8]),
-
-            # np.array([-math.pi / 2, math.pi / 3, math.pi / 4, math.pi / 8, math.pi / 6, -math.pi / 1]),
-            # np.array([-math.pi / 7, math.pi / 2, -math.pi / 5, math.pi / 6, math.pi / 3, -math.pi / 5]),
-            # np.array([math.pi / 6, math.pi / 3, math.pi / 8, math.pi / 8, math.pi / 3, math.pi / 6]),
-            # np.array([-math.pi / 2, math.pi / 6, -math.pi / 1, math.pi / 8, math.pi / 5, -math.pi / 4]),
-            # np.array([-math.pi / 2, -math.pi / 5, -math.pi / 4, -math.pi / 4, -math.pi / 9, -math.pi / 7]),
-            # np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 2, -math.pi / 1, -math.pi / 7]),
-            # np.array([-math.pi / 5, -math.pi / 5, -math.pi / 4, -math.pi / 2, -math.pi / 2, -math.pi / 9]),
-            # np.array([-math.pi / 3, -math.pi / 2, -math.pi / 8, -math.pi / 2, -math.pi / 3, -math.pi / 7]),
-            # np.array([-math.pi / 5, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 7]),
-            # np.array([-math.pi / 6, -math.pi / 5, -math.pi / 4, -math.pi / 9, -math.pi / 3, -math.pi / 8]),
         ],
 
         p_tool=[
@@ -55,7 +44,7 @@ class Calibration:
         self._m = self._c
         self._noise_std = 0.05 * 0.001
         self._FK = Kinematics(
-            p_tool=p_tool, delta=np.array([0.0000, 0.0000, 0.0000, 0.0000, 0.0000])
+            p_tool=p_tool, delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
         )
         self._goal_position = [
             np.array(
