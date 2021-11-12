@@ -234,8 +234,10 @@ class CalibrationEnv(gym.Env):
         if self._from_p_ij:
             if self._form_goal_pos:
                 return self._goal_position[self._i]
+
             return self._p_ij[self._i]
             # return self._p_ij[self._n_episode % len(self._p_ij)]
+
         return self.get_position()
 
     def distance_to_goal(self, action=None):
@@ -246,7 +248,8 @@ class CalibrationEnv(gym.Env):
         if self._all_config:
             dists_goal = []
             for l in range(self._n_config):
-                dists_goal.append(LA.norm(self.get_position(action) - self._goal_pos))
+                # dists_goal.append(LA.norm(self.get_position(action) - self._goal_pos))
+                dists_goal.append(np.mean(np.abs(self.get_position(action) - self._goal_pos)))
                 self.setup_joints()
             dist_goal = np.mean(np.array(dists_goal))
         else:
@@ -315,3 +318,12 @@ class CalibrationEnv(gym.Env):
             done = True
 
         return done
+
+
+def main():
+    env = CalibrationEnv()
+    print('distance to goal: ', env.distance_to_goal(env._calib_prms) * 1000)
+
+
+if __name__ == "__main__":
+    main()
