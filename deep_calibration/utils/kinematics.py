@@ -41,11 +41,11 @@ class Kinematics:
         )
 
         self.DH_used = {
-            "base": self.DH[0, 2],
-            "joint1": self.DH[3, 2] + self.DH[5, 2],
-            "joint2": self.DH[1, 0],
-            "joint3": self.DH[2, 0],
-            "joint4": self.DH[4, 2],
+            "base": self.DH[0, 2],  # 128
+            "joint1": self.DH[3, 2] + self.DH[5, 2],  # 163.9 + 92.2
+            "joint2": self.DH[1, 0],  # 621.7
+            "joint3": self.DH[2, 0],  # 571.6
+            "joint4": self.DH[4, 2],  # 115.7
         }
         # calibration parameters
         self.calib_prms = {
@@ -67,7 +67,14 @@ class Kinematics:
         self.quater = quater
         self.p_base = p_base
         self.R_base = R_base
-        self.p_tool = p_tool
+        if p_tool is None:
+            self.p_tool = [
+                np.array([277.23, -46.53, -93.87]) * 0.001,
+                np.array([276.49, -48.25, 94.05]) * 0.001,
+                np.array([278.44, 103.73, -2.17]) * 0.001,
+            ]
+        else:
+            self.p_tool = p_tool
 
     def R_baseq(self, q):
         Rb = np.zeros((4, 4))
@@ -213,6 +220,7 @@ class Kinematics:
             H_tool[0][:3, 3] = self.p_tool[j]
 
         H_total = H_base + H_01 + H_12 + H_23 + H_34 + H_45 + H_56 + H_tool
+        print(H_total)
 
         if k is None:
             H_robot = multi_dot(H_total)

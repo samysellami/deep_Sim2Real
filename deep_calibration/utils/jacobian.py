@@ -7,8 +7,8 @@ class Jacobian(Kinematics):
             Jacobian of the UR10 robot calibration
     """
 
-    def __init__(self, p_base=None, R_base=None, p_tool=None):
-        super().__init__(p_base=p_base, R_base=R_base, p_tool=p_tool)
+    def __init__(self, p_base=None, R_base=None, p_tool=None, delta=np.zeros(5)):
+        super().__init__(p_base=p_base, R_base=R_base, p_tool=p_tool, delta=delta)
 
         self._RATIO = 1  # conversion ratio to meters
         self._x = np.array([1, 0, 0])

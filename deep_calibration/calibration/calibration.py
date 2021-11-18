@@ -19,48 +19,46 @@ class Calibration:
         self,
         p_ij=[],
         configs=[
-            np.array([-math.pi / 8, math.pi / 3, math.pi / 4, math.pi / 5, math.pi / 6, -math.pi / 7]),
-            np.array([-math.pi / 7, math.pi / 6, -math.pi / 5, math.pi / 4, math.pi / 3, -math.pi / 8]),
-            np.array([math.pi / 5, math.pi / 3, math.pi / 4, math.pi / 8, math.pi / 7, math.pi / 6]),
-            np.array([-math.pi / 5, math.pi / 6, -math.pi / 7, math.pi / 8, math.pi / 3, -math.pi / 4]),
-            np.array([-math.pi / 3, -math.pi / 5, -math.pi / 8, -math.pi / 4, -math.pi / 6, -math.pi / 7]),
-            np.array([-math.pi / 4, -math.pi / 5, -math.pi / 1, -math.pi / 2, -math.pi / 5, -math.pi / 7]),
-            np.array([-math.pi / 4, -math.pi / 5, -math.pi / 3, -math.pi / 4, -math.pi / 2, -math.pi / 9]),
-            np.array([-math.pi / 8, -math.pi / 2, -math.pi / 4, -math.pi / 2, -math.pi / 6, -math.pi / 7]),
-            np.array([-math.pi / 7, -math.pi / 5, -math.pi / 6, -math.pi / 1, -math.pi / 2, -math.pi / 7]),
-            np.array([-math.pi / 3, -math.pi / 5, -math.pi / 4, -math.pi / 10, -math.pi / 2, -math.pi / 8]),
-        ],
-
-        p_tool=[
-            np.array([277.23, -46.53, -93.87]) * 0.001,
-            np.array([276.49, -48.25, 94.05]) * 0.001,
-            np.array([278.44, 103.73, -2.17]) * 0.001,
-        ],
+            np.array([0, 0, 0, 0, 0, 0]),
+            np.array([-math.pi / 2, math.pi, -math.pi / 2, math.pi, math.pi / 2, -math.pi]),
+            np.array([math.pi, math.pi / 2, math.pi, math.pi / 2, math.pi, math.pi / 2]),
+            np.array([-math.pi / 2, math.pi / 2, -math.pi, math.pi, math.pi / 2, -math.pi / 2]),
+            np.array([-math.pi / 2, -math.pi, -math.pi / 2, -math.pi / 2, -math.pi, -math.pi / 2]),
+            np.array([-math.pi, -math.pi, -math.pi / 2, -math.pi, -math.pi / 2, -math.pi / 2]),
+            np.array([math.pi / 2, math.pi / 2, math.pi / 2, math.pi / 2, math.pi / 2, math.pi / 2]),
+            np.array([-math.pi / 2, -math.pi / 2, -math.pi / 2, -math.pi / 2, -math.pi / 2, -math.pi / 2]),
+            np.array([math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2]),
+            np.array([-math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2]),
+        ]
     ):
-        self._p_tool = p_tool
+        self._p_tool = None
         self._p_base = None
         self._R_base = None
-        self._delta = np.array(5)
+        self._delta = np.zeros(5)
 
-        self._configs = configs  # robot configurations used for calibration
         self._n = 3  # number of tools used for calibration
+        # self._configs = self.setup_configs()  # robot configurations used for calibration
+        self._configs = configs  # robot configurations used for calibration
         self._c = len(self._configs)  # number of robot configurations
-        self._m = self._c
+        self._m = self._c  # number of measurements configurations
         self._noise_std = 0.00 * 0.001
+
         self._FK = Kinematics(
-            p_tool=self._p_tool, delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
+            p_base=np.zeros(3), R_base=np.identity(3),
+            delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
         )
-        self._goal_position = [
+        self._goal_pos = [
             np.array(
-                [
-                    self.p_robot(i, j=0),
-                    self.p_robot(i, j=1),
-                    self.p_robot(i, j=2),
-                ]
+                self.p_robot(i)
             )
             for i in range(self._c)
-        ]  # goal position without noise
+        ]  # goal position
+
+        self._FK = Kinematics(
+            delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
+        )
         self._p_ij = self.build_p_ij()
+        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
 
     def noise(self):
         return (2 * np.random.rand() - 1.0) * self._noise_std
@@ -76,6 +74,23 @@ class Calibration:
             )
             for i in range(self._m)
         ]  # partial pose measurements
+
+    def setup_configs(self):
+        configs = []
+        angle_limit = math.pi
+        self._c = 10
+
+        for m in range(self._c):
+            q = np.array([
+                (2 * np.random.rand() - 1.) * angle_limit,
+                (2 * np.random.rand() - 1.) * angle_limit,
+                (2 * np.random.rand() - 1.) * angle_limit,
+                (2 * np.random.rand() - 1.) * angle_limit,
+                (2 * np.random.rand() - 1.) * angle_limit,
+                (2 * np.random.rand() - 1.) * angle_limit
+            ])
+            configs.append(q)
+        return configs
 
     def config(self, i):
         return self._configs[i % self._c]
@@ -96,8 +111,10 @@ class Calibration:
     def R_robot(self, i=0):
         return self._FK.forward_kinematics(q=self.config(i))[1]
 
-    def delta_p(self, i=0, j=None):
+    def delta_p(self, i=0, j=None, goal=None):
         if j is None:
+            if goal is not None:
+                return (self._goal_pos[i] - self.p_robot(i=i)).flatten()
             return (self._p_ij[i] - self.p_robot(i=i)).flatten()
         else:
             return (self._p_ij[i][j] - self.p_robot(i=i, j=j)).flatten()
@@ -114,17 +131,26 @@ class Calibration:
             A[3 * j: 3 * (j + 1), 3 * (j + 2): 3 * (j + 3)] = R_i
         return A
 
-    def distance_to_goal(self):
-        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
+    def dist_to_goal(self):
+        self._FK = Kinematics(p_base=np.zeros(3), R_base=np.identity(3), delta=self._delta)
+        dists_goal = []
+        for i in range(self._m):
+            dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
+            dists_goal.append(dist_goal)
+
+        return np.mean(dists_goal)
+
+    def dist_to_goal_j(self):
         dists_goal = []
         for i in range(self._m):
             dist_goal = []
             for j in range(self._n):
                 dist_goal.append(self.delta_p(i=i, j=j))
             dist_goal = np.mean(np.abs((np.array(dist_goal))))
+            # dist_goal = LA.norm((np.array(dist_goal)))
             dists_goal.append(dist_goal)
 
-        return np.mean(np.array(dists_goal))
+        return np.mean(dists_goal)
 
     def identity_base_tool(self):
         """
@@ -157,44 +183,57 @@ class Calibration:
                 :param p_base, R_base, p_tool: (np.ndarray) base and tool parameters identified in the 1st step
                 :return: (np.ndarray) the calibration parameters
         """
-        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool)
-        jacob = Jacobian(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool)
+        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
+        jacob = Jacobian(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
 
         res1 = 0
         res2 = 0
+        A = np.zeros(5)
+        b = np.zeros(1)
+
         for i in range(self._m):
             for j in range(self._n):
                 J_ij = jacob.build_jacobian(q=self.config(i), j=j)
                 res1 += np.dot(J_ij.transpose(), J_ij)
                 res2 += np.dot(J_ij.transpose(), self.delta_p(i=i, j=j))
-                res2_ = np.dot(J_ij.transpose(), J_ij)
+
+                A = np.vstack((A, J_ij))
+                b = np.hstack((b, self.delta_p(i=i, j=j)))
 
         # print(LA.cond(res1, np.inf))
-        res = np.dot(np.linalg.inv(res1), res2)
-        res_noise = (1/self._m) * np.dot(np.linalg.inv(res1), res2_) * self._noise_std * 1000
-        # print('accuracy =', res_noise)
+        # calib_prms = np.dot(np.linalg.inv(res1), res2)
+        # accuracy = np.linalg.inv(res1) * self._noise_std * 1000
 
-        return res
+        A = np.delete(A, 0, 0)
+        b = np.delete(b, 0, 0)
+        calib_prms = np.dot(np.linalg.pinv(A), b)
+        return calib_prms
 
 
 def main():
 
     np.set_printoptions(precision=7, suppress=True)
     calib = Calibration()
+    print('distance to goal_j: ', calib.dist_to_goal_j() * 1000)
+    print('distance to goal: ', calib.dist_to_goal() * 1000)
 
     # step 1 identification of p_base, phi_base and u_tool
     p_base, R_base, p_tool = calib.identity_base_tool()
-    print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
+    # print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
 
     # step 2 identification of the calibration parameters
-    calib._p_base = None
-    calib._R_base = None
-    calib._p_tool = calib._p_tool
+    calib._p_base = p_base
+    calib._R_base = R_base
+    calib._p_tool = p_tool
 
-    calib_prms = calib.identify_calib_prms()
-    calib._delta = calib_prms
+    for i in range(10):
+        calib_prms = calib.identify_calib_prms()
+        calib._delta += calib_prms
 
-    print('calib_prms:', calib_prms)
+        print('delta_calib_prms:', calib_prms)
+        print('distance to goal: ', calib.dist_to_goal() * 1000)
+
+    print('calib_prms:', calib._delta)
 
     with open(f"{script_dir}/calibration/p_ij.npy", 'wb') as f:
         f.truncate(0)
@@ -204,11 +243,9 @@ def main():
             'R_base': calib._R_base,
             'p_tool': calib._p_tool,
             'calib_prms': calib._delta,
-            'goal_position': calib._goal_position,
+            'goal_position': calib._goal_pos,
         }, allow_pickle=True)
     f.close()
-
-    print('distance to goal: ', calib.distance_to_goal() * 1000)
 
 
 if __name__ == "__main__":
