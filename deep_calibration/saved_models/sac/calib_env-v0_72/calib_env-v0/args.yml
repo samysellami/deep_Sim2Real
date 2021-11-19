@@ -1,9 +1,0 @@
-!!python/object/apply:collections.OrderedDict
-- - - algo
-    - sac
-  - - command
-    - train
-  - - config
-    - calib_config.ini
-  - - optimize
-    - false

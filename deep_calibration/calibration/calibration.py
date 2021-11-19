@@ -216,19 +216,20 @@ def main():
 
     # step 1 identification of p_base, phi_base and u_tool
     p_base, R_base, p_tool = calib.identity_base_tool()
-    print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
+    # print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
 
     # step 2 identification of the calibration parameters
     calib._p_base = p_base
     calib._R_base = R_base
     calib._p_tool = p_tool
 
-    for i in range(5):
+    for i in range(1):
         calib_prms = calib.identify_calib_prms()
         calib._delta += calib_prms
 
         print('delta_calib_prms:', calib_prms)
         print('distance to goal: ', calib.dist_to_goal() * 1000)
+        print('distance to goal tool: ', calib.dist_to_goal_j() * 1000)
 
     print('calib_prms:', calib._delta)
 
