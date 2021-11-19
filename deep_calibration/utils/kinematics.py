@@ -44,8 +44,10 @@ class Kinematics:
             "base": self.DH[0, 2],  # 128
             "joint1": self.DH[3, 2] + self.DH[5, 2],  # 163.9 + 92.2
             "joint2": self.DH[1, 0],  # 621.7
-            "joint3": self.DH[2, 0],  # 571.6
-            "joint4": self.DH[4, 2],  # 115.7
+            "joint3": {"z": self.DH[2, 0], "x": -(self.DH[3, 2] + self.DH[5, 2])},  # z: 571.6, x: 163.9 + 92.2
+            "joint4": self.DH[3, 2],  # 163.9
+            "joint5": self.DH[4, 2],  # 115.7
+            "joint6": self.DH[5, 2],  # 92.2
         }
         # calibration parameters
         self.calib_prms = {
@@ -153,6 +155,8 @@ class Kinematics:
             H_base = [np.identity(4)]
             H_base[0][:3, :3] = self.R_base
             H_base[0][:3, 3] = self.p_base
+            if k is not None:
+                k = k + 2
         else:
             if self.quater is not None:
                 self.quater = np.quaternion(
@@ -175,6 +179,8 @@ class Kinematics:
                     self.Ry(self.calib_prms["base"]["phi_y"]),
                     self.Rz(self.calib_prms["base"]["phi_z"]),
                 ]
+            if k is not None:
+                k = k + 7
 
         H_01 = [
             self.Rz(q[0]),
@@ -192,15 +198,17 @@ class Kinematics:
 
         H_23 = [
             self.Rx(q[2] + self.calib_prms["joint3"]["delta_x"]),
-            self.Tz(self.DH_used["joint3"] + self.calib_prms["joint3"]["p_z"]),
+            self.Tx(self.DH_used["joint3"]["x"]),  # added
+            self.Tz(self.DH_used["joint3"]["z"] + self.calib_prms["joint3"]["p_z"]),
             self.Ry(self.calib_prms["joint3"]["phi_y"]),
             self.Rz(self.calib_prms["joint3"]["phi_z"]),
         ]
 
         H_34 = [
             self.Rx(q[3] + self.calib_prms["joint4"]["delta_x"]),
+            self.Tx(self.DH_used["joint4"]),  # added
             self.Ty(self.calib_prms["joint4"]["p_y"]),
-            self.Tz(self.DH_used["joint4"] + self.calib_prms["joint4"]["p_z"]),
+            self.Tz(self.calib_prms["joint4"]["p_z"]),
             self.Ry(self.calib_prms["joint4"]["phi_y"]),
         ]
 
@@ -208,10 +216,14 @@ class Kinematics:
             self.Rz(q[4] + self.calib_prms["joint5"]["delta_z"]),
             self.Tx(self.calib_prms["joint5"]["p_x"]),
             self.Ty(self.calib_prms["joint5"]["p_y"]),
+            self.Tz(self.DH_used["joint5"]),  # added
             self.Ry(self.calib_prms["joint5"]["phi_y"]),
         ]
 
-        H_56 = [self.Rx(q[5] + self.calib_prms["joint6"]["delta_x"])]
+        H_56 = [
+            self.Rx(q[5] + self.calib_prms["joint6"]["delta_x"]),
+            self.Tx(self.DH_used["joint6"]),  # added
+        ]
 
         H_tool = [np.identity(4)]
         if j is not None:
@@ -220,7 +232,6 @@ class Kinematics:
             H_tool[0][:3, 3] = self.p_tool[j]
 
         H_total = H_base + H_01 + H_12 + H_23 + H_34 + H_45 + H_56 + H_tool
-        print(H_total)
 
         if k is None:
             H_robot = multi_dot(H_total)

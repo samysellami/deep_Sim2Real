@@ -44,24 +44,22 @@ class Calibration:
         self._noise_std = 0.00 * 0.001
 
         self._FK = Kinematics(
-            p_base=np.zeros(3), R_base=np.identity(3),
             delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
         )
-        self._goal_pos = [
-            np.array(
-                self.p_robot(i)
-            )
-            for i in range(self._c)
-        ]  # goal position
-
-        self._FK = Kinematics(
-            delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
-        )
+        self._goal_pos = self.build_goal_pos()
         self._p_ij = self.build_p_ij()
         self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
 
     def noise(self):
         return (2 * np.random.rand() - 1.0) * self._noise_std
+
+    def build_goal_pos(self):
+        return [
+            np.array(
+                self.p_robot(i)
+            )
+            for i in range(self._c)
+        ]  # goal position
 
     def build_p_ij(self):
         return [
@@ -132,7 +130,7 @@ class Calibration:
         return A
 
     def dist_to_goal(self):
-        self._FK = Kinematics(p_base=np.zeros(3), R_base=np.identity(3), delta=self._delta)
+        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
         dists_goal = []
         for i in range(self._m):
             dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
@@ -214,19 +212,18 @@ def main():
 
     np.set_printoptions(precision=7, suppress=True)
     calib = Calibration()
-    print('distance to goal_j: ', calib.dist_to_goal_j() * 1000)
     print('distance to goal: ', calib.dist_to_goal() * 1000)
 
     # step 1 identification of p_base, phi_base and u_tool
     p_base, R_base, p_tool = calib.identity_base_tool()
-    # print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
+    print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
 
     # step 2 identification of the calibration parameters
     calib._p_base = p_base
     calib._R_base = R_base
     calib._p_tool = p_tool
 
-    for i in range(10):
+    for i in range(5):
         calib_prms = calib.identify_calib_prms()
         calib._delta += calib_prms
 

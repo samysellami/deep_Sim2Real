@@ -39,9 +39,9 @@ class Jacobian(Kinematics):
         for (_, joint) in self._prms.items():
             for (param, _) in joint.items():
                 if param == 'delta_x' or param == 'delta_z':
-                    O_i = self.forward_kinematics(q=q, k=k + 2)[0]
+                    O_i = self.forward_kinematics(q=q, k=k)[0]
                     O_n = self.forward_kinematics(q=q, j=j)[0]
-                    T_i = self.forward_kinematics(q=q, k=k + 2)[1]
+                    T_i = self.forward_kinematics(q=q, k=k)[1]
 
                     Jac[:, l] = self.jacobian(O_i=O_i, O_n=O_n, T_i=T_i, param=param)
                     l += 1
