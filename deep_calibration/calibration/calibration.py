@@ -34,17 +34,17 @@ class Calibration:
         self._p_tool = None
         self._p_base = None
         self._R_base = None
-        self._delta = np.zeros(5)
+        self._delta = np.array([0.00, -0.00, 0.00, -0.00, 0.00])
 
         self._n = 3  # number of tools used for calibration
         # self._configs = self.setup_configs()  # robot configurations used for calibration
         self._configs = configs  # robot configurations used for calibration
         self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.00 * 0.001
+        self._noise_std = 0.01 * 0.001
 
         self._FK = Kinematics(
-            delta=np.array([0.001, -0.002, 0.003, -0.002, 0.001])
+            delta=self._delta
         )
         self._goal_pos = self.build_goal_pos()
         self._p_ij = self.build_p_ij()
@@ -134,6 +134,7 @@ class Calibration:
         dists_goal = []
         for i in range(self._m):
             dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
+            # dist_goal = LA.norm((np.array(self.delta_p(i=i, goal=1))))
             dists_goal.append(dist_goal)
 
         return np.mean(dists_goal)
@@ -159,12 +160,22 @@ class Calibration:
 
         res1 = 0
         res2 = 0
+        A = np.zeros(15)
+        b = np.zeros(1)
+
         for i in range(self._m):
             A_i = self.construct_A(i)
             res1 += np.dot(A_i.transpose(), A_i)
             res2 += np.dot(A_i.transpose(), self.delta_p(i=i))
 
-        res = np.dot(np.linalg.inv(res1), res2)
+            A = np.vstack((A, A_i))
+            b = np.hstack((b, self.delta_p(i=i)))
+
+        A = np.delete(A, 0, 0)
+        b = np.delete(b, 0, 0)
+        # res = np.dot(np.linalg.inv(res1), res2)
+        res = np.dot(np.linalg.pinv(A), b)
+
         p_base, phi_base, u_tool1, u_tool2, u_tool3 = res[:
                                                           3], res[3:6], res[6:9], res[9:12], res[12:]
 
@@ -210,26 +221,27 @@ class Calibration:
 
 def main():
 
-    np.set_printoptions(precision=7, suppress=True)
+    # np.set_printoptions(precision=7, suppress=True)
     calib = Calibration()
-    print('distance to goal: ', calib.dist_to_goal() * 1000)
+    calib._delta = np.zeros(5)
+    print('distance to goal with: ', calib.dist_to_goal() * 1000)
 
     # step 1 identification of p_base, phi_base and u_tool
     p_base, R_base, p_tool = calib.identity_base_tool()
-    # print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
+    print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
 
     # step 2 identification of the calibration parameters
-    calib._p_base = p_base
-    calib._R_base = R_base
-    calib._p_tool = p_tool
+    calib._p_base = None
+    calib._R_base = None
+    calib._p_tool = None
 
-    for i in range(1):
+    for i in range(5):
         calib_prms = calib.identify_calib_prms()
         calib._delta += calib_prms
 
         print('delta_calib_prms:', calib_prms)
         print('distance to goal: ', calib.dist_to_goal() * 1000)
-        print('distance to goal tool: ', calib.dist_to_goal_j() * 1000)
+        # print('distance to goal tool: ', calib.dist_to_goal_j() * 1000)
 
     print('calib_prms:', calib._delta)
 
