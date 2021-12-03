@@ -14,7 +14,7 @@ from optuna.integration.skopt import SkoptSampler
 from optuna.pruners import BasePruner, MedianPruner, SuccessiveHalvingPruner
 from optuna.samplers import BaseSampler, RandomSampler, TPESampler
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback 
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 
 from deep_calibration import script_dir
 from deep_calibration.utils.callbacks import EvalCallback
@@ -187,8 +187,9 @@ class ExperimentManager(object):
             kwargs["callback"] = self.callbacks
 
         try:
-            with ProgressBarManager(self.n_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
-                model.learn(total_timesteps = self.n_timesteps, callback = [self.callbacks[0], progress_callback])
+            # this the garanties that the tqdm progress bar closes correctly
+            with ProgressBarManager(self.n_timesteps) as progress_callback:
+                model.learn(total_timesteps=self.n_timesteps, callback=[self.callbacks[0], progress_callback])
             # model.learn(self.n_timesteps, **kwargs)
         except KeyboardInterrupt:
             # this allows to save the model when interrupting training
@@ -402,14 +403,13 @@ class ExperimentManager(object):
         if self.save_freq > 0:
             # Account for the number of parallel environments
             self.save_freq = max(self.save_freq // self.n_envs, 1)
-            
+
             check_point_callback = CheckpointCallback(
                 save_freq=self.save_freq,
                 save_path=self.save_path,
                 name_prefix="rl_model",
                 verbose=1,
             )
-            
 
         # Create test env if needed, do not normalize reward
         if self.eval_freq > 0 and not self.optimize_hyperparameters:
@@ -427,9 +427,8 @@ class ExperimentManager(object):
                 log_path=self.log_path,
                 eval_freq=self.eval_freq,
                 deterministic=self.deterministic_eval,
-                verbose = 0,
+                verbose=0,
             )
-
 
             self.callbacks.append(eval_callback)
 
@@ -437,14 +436,17 @@ class ExperimentManager(object):
     def is_atari(env_id: str) -> bool:
         # return "AtariEnv" in gym.envs.registry.env_specs[env_id].entry_point
         return False
+
     @staticmethod
     def is_bullet(env_id: str) -> bool:
         # return "pybullet_envs" in gym.envs.registry.env_specs[env_id].entry_point
         return False
+
     @staticmethod
     def is_robotics_env(env_id: str) -> bool:
         # return "gym.envs.robotics" in gym.envs.registry.env_specs[env_id].entry_point
         return False
+
     def _maybe_normalize(self, env: VecEnv, eval_env: bool) -> VecEnv:
         """
         Wrap the env into a VecNormalize wrapper if needed
@@ -495,7 +497,7 @@ class ExperimentManager(object):
         :return: the vectorized environment, with appropriate wrappers
         """
         # Do not log eval env (issue with writing the same file)
-        env = Monitor(gym.make(f"deep_calibration:{self.env_id}"), self.log_path)
+        env = Monitor(gym.make(f"deep_calibration:{self.env_id}", **self.env_kwargs), self.log_path)
         env = NormalizeActionWrapper(env)
         return env
 
@@ -639,13 +641,14 @@ class ExperimentManager(object):
             n_eval_episodes=self.n_eval_episodes,
             eval_freq=self.eval_freq,
             deterministic=self.deterministic_eval,
-            best_model_save_path = self.log_path,
-            log_path = self.log_path
+            best_model_save_path=self.log_path,
+            log_path=self.log_path
         )
 
         try:
-            with ProgressBarManager(self.n_timesteps) as progress_callback: # this the garanties that the tqdm progress bar closes correctly
-                model.learn(total_timesteps = self.n_timesteps, callback = [eval_callback, progress_callback])
+            # this the garanties that the tqdm progress bar closes correctly
+            with ProgressBarManager(self.n_timesteps) as progress_callback:
+                model.learn(total_timesteps=self.n_timesteps, callback=[eval_callback, progress_callback])
             # model.learn(self.n_timesteps, callback=eval_callback)
             # Free memory
             model.env.close()

@@ -10,6 +10,7 @@ from gym import Space
 
 from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration import script_dir
+from deep_calibration.calibration.utils import *
 
 
 class CalibrationEnv(gym.Env):
@@ -32,37 +33,12 @@ class CalibrationEnv(gym.Env):
             np.array([math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2]),
             np.array([-math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2]),
         ],
-        quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
-        delta=np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
-        p_x=np.array([-0.2, 0.2]),
-        p_y=np.array([-0.2, 0.2, -0.2]),
-        p_z=np.array([-0.2, 0.2, -0.2]),
-        phi_y=np.array([-0.02, 0.02, -0.02, 0.02, -0.02]),
-        phi_z=np.array([-0.02, 0.02])
+        # quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
+        quater=None,
+        lim={'base_p': 0.001, 'base_phi': 0.001, 'tool': 0.01, 'delta': 0.005},
+        prms=['base_p', 'base_phi', 'tool']
     ):
-        # the action encodes the calibration parameters (positional and rotational)
-        # lim = 0.0001
-        lim = 0.005
-        self.action_space = spaces.Box(
-            np.array(
-                [-lim, -lim, -lim, -lim, -lim]
-            ),
-            np.array(
-                [lim, lim, lim, lim, lim]
-            ),
-            dtype='float32'
-        )
 
-        # the observation encodes  the joint angles
-        self.observation_space = spaces.Box(
-            np.array(
-                [-2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi, -2*math.pi]
-            ),
-            np.array(
-                [2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi, 2*math.pi]
-            ),
-            dtype='float32'
-        )
         self._configs = config
         self._config = config  # robot configurations
         self._n_config = len(self._config)  # number of configurations
@@ -72,40 +48,49 @@ class CalibrationEnv(gym.Env):
         self._n_episode = -1  # number of episodes
         # self._config = self.setup_configs()
 
-        # calibration parameters
+        # default calibration parameters
+        self._prms = {
+            'base_p': np.zeros(3),
+            'base_phi': np.zeros(3),
+            'delta': np.zeros(5),
+            'p_x': np.zeros(2),
+            'p_y': np.zeros(3),
+            'p_z': np.zeros(3),
+            'phi_y': np.zeros(5),
+            'phi_z': np.zeros(2),
+            'tool': np.zeros((3, 3)),
+        }
+        # parameters to tune
+        self._prms_action = {key: value for (key, value) in self._prms.items() if key in prms}
+
         self._p_base = None
         self._R_base = None
         self._p_tool = None
+
         self._quater = quater
-        self._delta = delta
-        self._p_x = p_x
-        self._p_y = p_y
-        self._p_z = p_z
-        # self._phi_x = phi_x
-        self._phi_y = phi_y
-        self._phi_z = phi_z
         self._prev_distance = None  # previous distance to goal used to compute the reward
         self._all_config = True  # if True compute the mean distance to goal using all configurations
         self._from_p_ij = True  # if True compute the goal position from the real measurements data
         self._form_goal_pos = True  # if True compute the goal position from the kinematics without tools
-        self._tune = False
+        self._tune = True
 
         if self._from_p_ij:
-            with open(f"{script_dir}/calibration/p_ij.npy", 'rb') as f:
-                self.identified_prms = np.load(f, allow_pickle=True).item()
-                self._p_ij = self.identified_prms['p_ij']
-                self._p_base = self.identified_prms['p_base']
-                self._R_base = self.identified_prms['R_base']
-                self._p_tool = self.identified_prms['p_tool']
-                self._calib_prms = self.identified_prms['calib_prms']
-                self._goal_position = self.identified_prms['goal_position']
-        f.close()
+            identified_prms = save_read_data(
+                file_name='p_ij',
+                io='r',
+                data=None
+            )
+            self._p_ij = identified_prms['p_ij']
+            self._p_base = identified_prms['p_base']
+            self._R_base = identified_prms['R_base']
+            self._p_tool = identified_prms['p_tool']
+            self._calib_prms = identified_prms['calib_prms']
+            self._goal_position = identified_prms['goal_position']
 
         # setup joints and actions
-        self._default_action = self.get_default_action(
-            quater=quater, delta=delta, p_x=p_x, p_y=p_y, p_z=p_z,
-            phi_y=phi_y, phi_z=phi_z
-        )
+        self._default_action = self.get_default_action()
+        self._lim = lim
+        self.build_space()
         self.setup_joints()
         self._best_action = np.zeros(
             (self._n_config, self.action_space.shape[0] + 1)
@@ -115,6 +100,25 @@ class CalibrationEnv(gym.Env):
     @property
     def config(self):
         return self._config
+
+    def build_space(self):
+        # the action encodes the calibration parameters (positional and rotational)
+        action_space = np.zeros(0)
+        for prm in self._prms_action:
+            action_space = np.hstack((action_space, np.ones(self._prms_action[prm].size) * self._lim[prm]))
+        self.action_space = spaces.Box(
+            -action_space,
+            action_space,
+            dtype='float32'
+        )
+
+        # the observation encodes  the joint angles
+        obs_space = np.ones(6) * 2*math.pi
+        self.observation_space = spaces.Box(
+            -obs_space,
+            obs_space,
+            dtype='float32'
+        )
 
 # ---------------------------- Gym specific methods  -----------------------------------
 
@@ -131,10 +135,6 @@ class CalibrationEnv(gym.Env):
 
     def reset(self):
         # print('--------Episode reset--------')
-
-        # if self._count % 10000 == 0:
-        #   print(f'--------best actions --------: {self._best_action}')
-
         self._prev_distance = None
         self.setup_joints()
 
@@ -148,6 +148,20 @@ class CalibrationEnv(gym.Env):
         ...
 
 # ----------------------------  env-specific methods -----------------------------------
+
+    def get_default_action(self):
+        save_read_data(
+            file_name='best_action',
+            io='w',
+            data={
+                'prms_action': self._prms_action
+            }
+        )
+        action = np.zeros(0)
+        for prm in self._prms_action:
+            action = np.hstack((action, self._prms_action[prm].flatten()))
+
+        return action
 
     def update_best_action(self, action=None, init=False):
         if init == True:
@@ -191,41 +205,48 @@ class CalibrationEnv(gym.Env):
             ])
         self._goal_pos = self.get_goal_position()
 
-    def get_default_action(self, quater, delta, p_x, p_y, p_z,
-                           phi_y, phi_z):
-        action = np.zeros(5)
-        action = delta + self._calib_prms
-
-        return action
-
     def get_position(self, action=None, tool=None):
         """
           Return the end effector position
-            :param action: (np.ndarray) the calibration parameters 
+            :param action: (np.ndarray) the calibration parameters
             :return: (np.ndarray) the position of the end effector
         """
         if action is None:
             action = self._default_action
 
-        if self._tune:
-            self._delta = action + self._calib_prms
-        else:
-            self._delta = action
+        ind_ = 0
+        for prm in self._prms_action:
+            ind = self._prms_action[prm].size + ind_
+            if prm == 'tool':
+                self._prms[prm] = action[ind_:ind].reshape(3, 3)
+            else:
+                self._prms[prm] = action[ind_:ind]
 
+            if self._tune:
+                if prm == 'delta':
+                    self._prms[prm] = action[ind_:ind] + self._calib_prms
+            ind_ = ind
+
+        self._FK = Kinematics(
+            base_p=self._prms['base_p'],
+            base_phi=self._prms['base_phi'],
+            delta=self._prms['delta'],
+            p_x=self._prms['p_x'],
+            p_y=self._prms['p_y'],
+            p_z=self._prms['p_z'],
+            phi_y=self._prms['phi_y'],
+            phi_z=self._prms['phi_z'],
+            tool=self._prms['tool'],
+            p_base=self._p_base,
+            R_base=self._R_base,
+            p_tool=self._p_tool
+        )
         if tool is not None:
-            FK = Kinematics(
-                p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool,
-                delta=self._delta
-            )
             pos = []
             for j in range(3):
-                pos.append(FK.forward_kinematics(q=self._q, j=j)[0])
+                pos.append(self._FK.forward_kinematics(q=self._q, j=j)[0])
         else:
-            FK = Kinematics(
-                p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool,
-                delta=self._delta
-            )
-            pos = FK.forward_kinematics(q=self._q)[0]
+            pos = self._FK.forward_kinematics(q=self._q)[0]
 
         return np.array(pos)
 
@@ -242,7 +263,7 @@ class CalibrationEnv(gym.Env):
     def distance_to_goal(self, action=None):
         """
             Compute the distance to the goal
-                :param action: (np.ndarray) the calibration parameters 
+                :param action: (np.ndarray) the calibration parameters
         """
         if self._all_config:
             dists_goal = []
@@ -262,7 +283,7 @@ class CalibrationEnv(gym.Env):
     def get_observation(self, action=None):
         """
             Return the environment observation
-                :param action: (np.ndarray) the calibration parameters 
+                :param action: (np.ndarray) the calibration parameters
                 :return: (np.ndarray) the environment observation
         """
         if action is None:
@@ -275,7 +296,7 @@ class CalibrationEnv(gym.Env):
     def compute_reward(self, action):
         """
             Compute the reward value for the step function
-                :param action: (np.ndarray) the calibration parameters 
+                :param action: (np.ndarray) the calibration parameters
         """
 
         dist_goal = self.distance_to_goal(action)
@@ -304,7 +325,7 @@ class CalibrationEnv(gym.Env):
     def compute_done(self, action):
         """
             Compute the done boolean for the step function
-                :param reward: (float) the reward of the given step 
+                :param reward: (float) the reward of the given step
                 :return: (float) the done flag
         """
         self._count += 1
@@ -324,7 +345,9 @@ class CalibrationEnv(gym.Env):
 
 def main():
     env = CalibrationEnv()
-    print('distance to goal: ', env.distance_to_goal(env._calib_prms) * 1000)
+    # print('distance to goal: ', env.distance_to_goal(env._calib_prms) * 1000)
+    action = env.action_space.sample()
+    print('distance to goal: ', env.distance_to_goal(np.zeros(action.size)) * 1000)
 
 
 if __name__ == "__main__":

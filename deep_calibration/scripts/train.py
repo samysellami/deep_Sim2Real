@@ -4,6 +4,7 @@ import math
 import os
 import gym
 import json
+import yaml
 
 from deep_calibration import script_dir
 from deep_calibration.utils.kinematics import Kinematics
@@ -47,29 +48,38 @@ def build_args(parser):
                         type=str, metavar="CONFIG_NAME", dest="config", required=True)
     parser.add_argument("--algo", type=str, default=None,
                         dest="algo", help="algorithm", required=True)
+    parser.add_argument("--prms",  type=list, default=None,
+                        dest="prms", help="parameters to tune", required=True)
     parser.add_argument("-optimize", "--optimize-hyperparameters", action="store_true",
                         default=False, dest="optimize", help="Run hyperparameters search")
-
     return parser
 
 
 def main(args, unknown_args):
 
     # path to the configuration file
-    path = os.path.join(script_dir, 'configs', args.config)
+    config_path = os.path.join(script_dir, 'configs', args.config)
 
     # check if the algorithm is implemented
     if args.algo not in ALGOS:
         raise NotImplementedError('the algorithm specified has not been recognized !!')
 
     # parsing the config file and the args parser
-    config_file = configparser.ConfigParser()
-    config_file.read(path)
-    n_timesteps = config_file.getint('ADAPT', 'total_timesteps')
-    env_id = config_file['ADAPT']['environment']
-    batch_size = config_file.getint(args.algo, 'batch_size')
-    net_arch = json.loads(config_file.get(args.algo, 'net_arch'))
-    seed = config_file.getint(args.algo, 'seed')
+    if os.path.isfile(config_path):
+        with open(config_path, "r") as f:
+            try:
+                loaded_args = yaml.load(f, Loader=yaml.UnsafeLoader)  # pytype: disable=module-attr
+
+            except yaml.YAMLError as exc:
+                print(exc)
+
+    n_timesteps = loaded_args['ADAPT']['total_timesteps']
+    env_id = loaded_args['ADAPT']['environment']
+    batch_size = loaded_args[args.algo]['batch_size']
+    net_arch = loaded_args[args.algo]['net_arch']
+    seed = loaded_args[args.algo]['seed']
+    env_kwargs = {'prms': args.prms}
+
     n_eval_episodes = 10
     n_eval_test = 5
     eval_freq = 10
@@ -93,6 +103,7 @@ def main(args, unknown_args):
         args,
         algo=args.algo,
         env_id=env_id,
+        env_kwargs=env_kwargs,
         log_folder=log_path,
         n_timesteps=n_timesteps,
         eval_freq=eval_freq,

@@ -247,7 +247,7 @@ class EvalCallback(EventCallback):
                     print("New best mean reward!")
 
                 print(
-                    f"New best mean reward: {mean_reward:.7f} with mean distance: {mean_dist:.7f}")
+                    f"New best reward: {mean_reward:.4f} with mean distance: {mean_dist * 1000:.4f}")
                 self.best_mean_reward = mean_reward
 
                 if self.best_model_save_path is not None and self.best_mean_reward > self.best_reward:

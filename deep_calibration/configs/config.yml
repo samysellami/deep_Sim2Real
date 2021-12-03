@@ -1,0 +1,18 @@
+ADAPT:
+    total_timesteps: 100
+    environment: calib_env-v0
+
+sac:
+    batch_size: 256
+    net_arch: [256, 256]
+    seed: 0
+
+ppo:
+    batch_size: 256
+    net_arch: [256, 256]
+    seed: 0
+
+td3:
+    batch_size: 256
+    net_arch: [256, 256]
+    seed: 0

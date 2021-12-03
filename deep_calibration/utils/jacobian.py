@@ -7,15 +7,29 @@ class Jacobian(Kinematics):
             Jacobian of the UR10 robot calibration
     """
 
-    def __init__(self, p_base=None, R_base=None, p_tool=None, delta=np.zeros(5)):
-        super().__init__(p_base=p_base, R_base=R_base, p_tool=p_tool, delta=delta)
+    def __init__(self, p_base=None, R_base=None, p_tool=None, prms={}):
+        super().__init__(
+            base_p=prms['base_p'],
+            base_phi=prms['base_phi'],
+            delta=prms['delta'],
+            p_x=prms['p_x'],
+            p_y=prms['p_y'],
+            p_z=prms['p_z'],
+            phi_y=prms['phi_y'],
+            phi_z=prms['phi_z'],
+            tool=prms['tool'],
+            p_base=p_base,
+            R_base=R_base,
+            p_tool=p_tool
+        )
 
         self._RATIO = 1  # conversion ratio to meters
         self._x = np.array([1, 0, 0])
         self._y = np.array([0, 1, 0])
         self._z = np.array([0, 0, 1])
-        self._prms = self.calib_prms.copy()
+        self._prms = self._calib_prms.copy()
         del self._prms["base"]
+        del self._prms["tool"]
 
     def jacobian(self, O_i, O_n, T_i, param):
         if param == "p_x":

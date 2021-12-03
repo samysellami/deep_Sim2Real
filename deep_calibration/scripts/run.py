@@ -18,6 +18,7 @@ from deep_calibration.utils.utils import ALGOS, create_test_env, get_latest_run_
 from deep_calibration.utils.exp_manager import ExperimentManager
 from deep_calibration.utils.utils import StoreDict
 from deep_calibration import script_dir
+from deep_calibration.calibration.utils import *
 
 
 def parse_args():
@@ -44,6 +45,8 @@ def build_args(parser):
         type=int)
     parser.add_argument("--load-best", action="store_true", default=False,
                         help="Load best model instead of last model if available")
+    parser.add_argument("--prms",  type=list, default=None,
+                        dest="prms", help="parameters to tune", required=True)
     parser.add_argument("--seed", help="Random generator seed", type=int, default=0)
 
     return parser
@@ -61,22 +64,26 @@ def main(args, unknown_args):  # noqa: C901
 
     tune = False
 
-    with open(f"{script_dir}/calibration/p_ij.npy", 'rb') as f:
-        identified_prms = np.load(f, allow_pickle=True).item()
-        calib_prms = identified_prms['calib_prms']
-
-    # path to the configuration file
-    path = os.path.join(script_dir, 'configs', args.config)
-
     # check if the algorithm is implemented
     if args.algo not in ALGOS:
         raise NotImplementedError('the algorithm specified has not been recognized !!')
 
+    # path to the configuration file
+    config_path = os.path.join(script_dir, 'configs', args.config)
+
     # parsing the config file and the args parser
-    config_file = configparser.ConfigParser()
-    config_file.read(path)
-    n_timesteps = config_file.getint('ADAPT', 'total_timesteps')
-    env_id = config_file['ADAPT']['environment']
+    if os.path.isfile(config_path):
+        with open(config_path, "r") as f:
+            try:
+                loaded_args = yaml.load(f, Loader=yaml.UnsafeLoader)  # pytype: disable=module-attr
+
+            except yaml.YAMLError as exc:
+                print(exc)
+
+    n_timesteps = loaded_args['ADAPT']['total_timesteps']
+    env_id = loaded_args['ADAPT']['environment']
+    env_kwargs = {'prms': args.prms}
+
     n_eval_episodes = 10
     n_eval_test = 5
     eval_freq = 10
@@ -125,8 +132,9 @@ def main(args, unknown_args):  # noqa: C901
             loaded_args = yaml.load(f, Loader=yaml.UnsafeLoader)  # pytype: disable=module-attr
             if loaded_args["env_kwargs"] is not None:
                 env_kwargs = loaded_args["env_kwargs"]
+    env_kwargs = {'prms': args.prms}
 
-    env = Monitor(gym.make(f"deep_calibration:{env_id}"), log_path)
+    env = Monitor(gym.make(f"deep_calibration:{env_id}", **env_kwargs), log_path)
     eval_env = NormalizeActionWrapper(env)
 
     kwargs = dict(seed=args.seed)
@@ -149,8 +157,15 @@ def main(args, unknown_args):  # noqa: C901
     best_model = ALGOS[algo].load(model_path, env=env, custom_objects=custom_objects, **kwargs)
 
     obs = env.reset()
+    np.set_printoptions(precision=4, suppress=True)
 
-    np.set_printoptions(precision=10, suppress=True)
+    identified_prms = save_read_data(
+        file_name='p_ij',
+        io='r',
+        data=None
+    )
+    calib_prms = identified_prms['calib_prms']
+
     try:
         # sample an observation from the environment and compute the action
         dists = []
@@ -161,11 +176,11 @@ def main(args, unknown_args):  # noqa: C901
             action = eval_env.rescale_action(action)
             actions.append(action)
             dist = eval_env.distance_to_goal(action) * 1000
-            print(f'distance to goal for config {i} = {dist:.6f}')
+            print(f'distance to goal for config {i} = {dist:.4f}')
             dists.append(dist)
             # print(f'parameters for config {i} is {action}')
 
-        print(f'mean distance = {np.mean(dists):.6f}')
+        print(f'average distance to goal= {np.mean(dists):.4f}')
 
         if tune:
             actions = actions + calib_prms
@@ -175,14 +190,30 @@ def main(args, unknown_args):  # noqa: C901
         best_action = actions[ind_min]
         worst_action = actions[ind_max]
 
-        print(f'worst distance = {dists[ind_max]:.6f}')
-        print(f'best distance = {dists[ind_min]:.6f}')
+        print(f'worst distance = {dists[ind_max]:.4f}')
+        print(f'best distance = {dists[ind_min]:.4f}')
 
-        print(f'best action =  {best_action}')
-        print(f'worst action =  {worst_action}')
+        # print(f'best action =  {best_action}')
+        # print(f'worst action =  {worst_action}')
 
         # std_actions = std(actions, best_action)
         # print(f'std actions =  {std_actions}')
+
+        read_data = save_read_data(
+            file_name='best_action',
+            io='r',
+            data=None
+        )
+        prms_action = read_data['prms_action']
+
+        save_read_data(
+            file_name='best_action',
+            io='w',
+            data={
+                'best_action': best_action,
+                'prms_action': prms_action,
+            }
+        )
 
     except KeyboardInterrupt:
         pass

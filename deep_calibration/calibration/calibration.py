@@ -1,17 +1,16 @@
 import numpy as np
 import math
-import os
 
 from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration.utils.jacobian import Jacobian
 from numpy import linalg as LA
 
-from deep_calibration import script_dir
+from deep_calibration.calibration.utils import *
 
 
 class Calibration:
     """
-    Calibration of the UR10 arm following the paper "Geometric and elastostatic calibration of robotic manipulator
+    Calibration of the UR10 arm base on the paper "Geometric and elastostatic calibration of robotic manipulator
                                                             using partial pose measurements"
     """
 
@@ -31,24 +30,56 @@ class Calibration:
             np.array([-math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2, -math.pi / 2, math.pi / 2]),
         ]
     ):
-        self._p_tool = None
+        # default robot parameters
         self._p_base = None
         self._R_base = None
-        self._delta = np.array([0.00, -0.00, 0.00, -0.00, 0.00])
+        self._p_tool = None
+        self._delta = np.array([0.001, -0.002, 0.003, -0.002, 0.001])
+
+        # default calibration parameters
+        self._prms = {
+            'base_p': np.zeros(3),
+            'base_phi': np.zeros(3),
+            'delta': np.zeros(5),
+            'p_x': np.zeros(2),
+            'p_y': np.zeros(3),
+            'p_z': np.zeros(3),
+            'phi_y': np.zeros(5),
+            'phi_z': np.zeros(2),
+            'tool': np.zeros((3, 3)),
+        }
 
         self._n = 3  # number of tools used for calibration
         # self._configs = self.setup_configs()  # robot configurations used for calibration
         self._configs = configs  # robot configurations used for calibration
         self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.01 * 0.001
+        self._noise_std = 0.00 * 0.001
 
-        self._FK = Kinematics(
-            delta=self._delta
+        self.update_kinematics(
+            prms={'delta': self._delta}
         )
         self._goal_pos = self.build_goal_pos()
         self._p_ij = self.build_p_ij()
-        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
+
+    def update_kinematics(self, prms={}):
+        for prm in prms:
+            self._prms[prm] = prms[prm]
+
+        self._FK = Kinematics(
+            base_p=self._prms['base_p'],
+            base_phi=self._prms['base_phi'],
+            delta=self._prms['delta'],
+            p_x=self._prms['p_x'],
+            p_y=self._prms['p_y'],
+            p_z=self._prms['p_z'],
+            phi_y=self._prms['phi_y'],
+            phi_z=self._prms['phi_z'],
+            tool=self._prms['tool'],
+            p_base=self._p_base,
+            R_base=self._R_base,
+            p_tool=self._p_tool
+        )
 
     def noise(self):
         return (2 * np.random.rand() - 1.0) * self._noise_std
@@ -156,7 +187,11 @@ class Calibration:
             Identify the tool and base parameters
                 :return: (np.ndarray) the base positional and rotoational parameters and the tool parameters
         """
-        self._FK = Kinematics(p_base=np.zeros(3), R_base=np.identity(3))
+        self._p_base = np.zeros(3)
+        self._R_base = np.identity(3)
+        self.update_kinematics(
+            prms={'delta': self._delta}
+        )
 
         res1 = 0
         res2 = 0
@@ -192,8 +227,15 @@ class Calibration:
                 :param p_base, R_base, p_tool: (np.ndarray) base and tool parameters identified in the 1st step
                 :return: (np.ndarray) the calibration parameters
         """
-        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
-        jacob = Jacobian(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
+        self.update_kinematics(
+            prms={'delta': self._delta}
+        )
+        jacob = Jacobian(
+            prms=self._prms,
+            p_base=self._p_base,
+            R_base=self._R_base,
+            p_tool=self._p_tool
+        )
 
         res1 = 0
         res2 = 0
@@ -209,7 +251,6 @@ class Calibration:
                 A = np.vstack((A, J_ij))
                 b = np.hstack((b, self.delta_p(i=i, j=j)))
 
-        # print(LA.cond(res1, np.inf))
         # calib_prms = np.dot(np.linalg.inv(res1), res2)
         # accuracy = np.linalg.inv(res1) * self._noise_std * 1000
 
@@ -218,44 +259,32 @@ class Calibration:
         calib_prms = np.dot(np.linalg.pinv(A), b)
         return calib_prms
 
+    def update_prms(self):
+        prms = save_read_data(
+            file_name='best_action',
+            io='r',
+            data=None
+        )
+        best_action = prms['best_action']
+        prms_action = prms['prms_action']
+
+        ind_ = 0
+        for prm in prms_action:
+            ind = prms_action[prm].size + ind_
+            if prm == 'tool':
+                self._prms[prm] = best_action[ind_:ind].reshape(3, 3)
+            else:
+                self._prms[prm] = best_action[ind_:ind]
+
+            if prm == 'delta':
+                self._prms[prm] = best_action[ind_:ind] + self._delta
+
+            ind_ = ind
+        self.update_kinematics()
+
 
 def main():
-
-    # np.set_printoptions(precision=7, suppress=True)
-    calib = Calibration()
-    calib._delta = np.zeros(5)
-    print('distance to goal with: ', calib.dist_to_goal() * 1000)
-
-    # step 1 identification of p_base, phi_base and u_tool
-    p_base, R_base, p_tool = calib.identity_base_tool()
-    print('p_base:\n', p_base, ' \n R_base:\n', R_base, '\n p_tool:\n', p_tool)
-
-    # step 2 identification of the calibration parameters
-    calib._p_base = None
-    calib._R_base = None
-    calib._p_tool = None
-
-    for i in range(5):
-        calib_prms = calib.identify_calib_prms()
-        calib._delta += calib_prms
-
-        print('delta_calib_prms:', calib_prms)
-        print('distance to goal: ', calib.dist_to_goal() * 1000)
-        # print('distance to goal tool: ', calib.dist_to_goal_j() * 1000)
-
-    print('calib_prms:', calib._delta)
-
-    with open(f"{script_dir}/calibration/p_ij.npy", 'wb') as f:
-        f.truncate(0)
-        np.save(f, {
-            'p_ij': calib._p_ij,
-            'p_base': calib._p_base,
-            'R_base': calib._R_base,
-            'p_tool': calib._p_tool,
-            'calib_prms': calib._delta,
-            'goal_position': calib._goal_pos,
-        }, allow_pickle=True)
-    f.close()
+    pass
 
 
 if __name__ == "__main__":
