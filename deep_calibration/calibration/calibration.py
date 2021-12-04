@@ -259,6 +259,15 @@ class Calibration:
         calib_prms = np.dot(np.linalg.pinv(A), b)
         return calib_prms
 
+    def base_tool_after_tuning(self):
+        R_base = self._R_base + self.skew(self._prms["base_phi"])
+        p_base = self._p_base + self._prms["base_p"]
+        p_tool = self._p_tool + self._prms['tool']
+
+        print('\n p_base: \n', p_base * 1000)
+        print('\n R_base: \n', R_base)
+        print('\n p_tool: \n', [p * 1000 for p in p_tool])
+
     def update_prms(self):
         prms = save_read_data(
             file_name='best_action',
@@ -277,7 +286,8 @@ class Calibration:
                 self._prms[prm] = best_action[ind_:ind]
 
             if prm == 'delta':
-                self._prms[prm] = best_action[ind_:ind] + self._delta
+                self._delta += best_action[ind_:ind]
+                self._prms[prm] = self._delta
 
             ind_ = ind
         self.update_kinematics()

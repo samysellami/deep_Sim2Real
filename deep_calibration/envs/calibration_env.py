@@ -35,7 +35,7 @@ class CalibrationEnv(gym.Env):
         ],
         # quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
         quater=None,
-        lim={'base_p': 0.001, 'base_phi': 0.001, 'tool': 0.01, 'delta': 0.005},
+        lim={'base_p': 0.001, 'base_phi': 0.001, 'tool': 0.001, 'delta': 0.001},
         prms=['base_p', 'base_phi', 'tool']
     ):
 
@@ -222,8 +222,8 @@ class CalibrationEnv(gym.Env):
             else:
                 self._prms[prm] = action[ind_:ind]
 
-            if self._tune:
-                if prm == 'delta':
+            if prm == 'delta':
+                if self._tune:
                     self._prms[prm] = action[ind_:ind] + self._calib_prms
             ind_ = ind
 
@@ -347,7 +347,7 @@ def main():
     env = CalibrationEnv()
     # print('distance to goal: ', env.distance_to_goal(env._calib_prms) * 1000)
     action = env.action_space.sample()
-    print('distance to goal: ', env.distance_to_goal(np.zeros(action.size)) * 1000)
+    print(f'distance to goal: {env.distance_to_goal(np.zeros(action.size)) * 1000:.4f}')
 
 
 if __name__ == "__main__":

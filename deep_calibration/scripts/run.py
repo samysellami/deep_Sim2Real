@@ -176,8 +176,8 @@ def main(args, unknown_args):  # noqa: C901
             action = eval_env.rescale_action(action)
             actions.append(action)
             dist = eval_env.distance_to_goal(action) * 1000
-            print(f'distance to goal for config {i} = {dist:.4f}')
             dists.append(dist)
+            # print(f'distance to goal for config {i} = {dist:.4f}')
             # print(f'parameters for config {i} is {action}')
 
         print(f'average distance to goal= {np.mean(dists):.4f}')
