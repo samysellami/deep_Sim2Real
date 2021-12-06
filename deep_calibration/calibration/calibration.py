@@ -161,7 +161,9 @@ class Calibration:
         return A
 
     def dist_to_goal(self):
-        self._FK = Kinematics(p_base=self._p_base, R_base=self._R_base, p_tool=self._p_tool, delta=self._delta)
+        self.update_kinematics(
+            prms={'delta': self._delta}
+        )
         dists_goal = []
         for i in range(self._m):
             dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
@@ -264,6 +266,7 @@ class Calibration:
         p_base = self._p_base + self._prms["base_p"]
         p_tool = self._p_tool + self._prms['tool']
 
+        print('\n base and tool parameters after tuning:')
         print('\n p_base: \n', p_base * 1000)
         print('\n R_base: \n', R_base)
         print('\n p_tool: \n', [p * 1000 for p in p_tool])
@@ -290,7 +293,9 @@ class Calibration:
                 self._prms[prm] = self._delta
 
             ind_ = ind
-        self.update_kinematics()
+        self.update_kinematics(
+            prms={'delta': self._delta}
+        )
 
 
 def main():

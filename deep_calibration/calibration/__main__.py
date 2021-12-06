@@ -8,7 +8,7 @@ from deep_calibration.calibration.calibration import Calibration
 def main():
 
     np.set_printoptions(precision=4, suppress=True)
-    tune = True
+    tune = False
 
     calib = Calibration()
     calib._delta = np.zeros(5)
@@ -16,14 +16,14 @@ def main():
     # step 1 identification of p_base, phi_base and u_tool
     print('\n ############# identification of the base and tool ##################### \n')
     p_base, R_base, p_tool = calib.identity_base_tool()
-    print('\n p_base: \n', p_base * 1000)
+    print(' p_base: \n', p_base * 1000)
     print('\n R_base: \n', R_base)
     print('\n p_tool: \n', [p * 1000 for p in p_tool])
 
     calib._p_base = p_base
     calib._R_base = R_base
     calib._p_tool = p_tool
-    print(f'\n distance to goal after the base and tool identification: {calib.dist_to_goal() * 1000:.4f}', )
+    print(f'\n distance to goal after the base and tool identification: {calib.dist_to_goal() * 1000:.4f}')
 
     save_read_data(
         file_name='p_ij',
@@ -33,6 +33,7 @@ def main():
             'p_base': calib._p_base,
             'R_base': calib._R_base,
             'p_tool': calib._p_tool,
+            'prms': calib._prms,
             'calib_prms': calib._delta,
             'goal_position': calib._goal_pos,
         }
@@ -55,9 +56,11 @@ def main():
         calib._delta += calib_prms
 
         # print('delta_calib_prms:', calib_prms)
-        print(f'distance to goal after calibration {i} : {calib.dist_to_goal() * 1000:.4f}')
-    calib.update_kinematics()
-    print('calib_prms:', calib._delta)
+        print(f' distance to goal after calibration {i} : {calib.dist_to_goal() * 1000:.4f}')
+    calib.update_kinematics(
+        prms={'delta': calib._delta}
+    )
+    print('\n delta parameters:', calib._delta)
 
     save_read_data(
         file_name='p_ij',
@@ -67,6 +70,7 @@ def main():
             'p_base': calib._p_base,
             'R_base': calib._R_base,
             'p_tool': calib._p_tool,
+            'prms': calib._prms,
             'calib_prms': calib._delta,
             'goal_position': calib._goal_pos,
         }
@@ -80,7 +84,7 @@ def main():
         deep_calib(['run', '--config', 'config.yml', '--algo', 'sac', '--load-best', '--prms', prms_to_tune])
         calib.update_prms()
 
-        print('calib_prms:', calib._delta)
+        print('\n delta parameters after tuning:', calib._delta)
         print(f'\n distance to goal after tuning the calibration parameters: {calib.dist_to_goal() * 1000:.4f}')
 
 

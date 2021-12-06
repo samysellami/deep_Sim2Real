@@ -84,6 +84,7 @@ class CalibrationEnv(gym.Env):
             self._p_base = identified_prms['p_base']
             self._R_base = identified_prms['R_base']
             self._p_tool = identified_prms['p_tool']
+            self._prms = identified_prms['prms']
             self._calib_prms = identified_prms['calib_prms']
             self._goal_position = identified_prms['goal_position']
 
