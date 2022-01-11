@@ -8,7 +8,7 @@ from deep_calibration.calibration.calibration import Calibration
 def main():
 
     np.set_printoptions(precision=4, suppress=True)
-    tune = False
+    tune = True
 
     calib = Calibration()
     calib._delta = np.zeros(5)

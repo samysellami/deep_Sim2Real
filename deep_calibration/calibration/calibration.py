@@ -54,7 +54,7 @@ class Calibration:
         self._configs = configs  # robot configurations used for calibration
         self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.00 * 0.001
+        self._noise_std = 0.05 * 0.001
 
         self.update_kinematics(
             prms={'delta': self._delta}
