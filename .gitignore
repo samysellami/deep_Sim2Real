@@ -20,6 +20,7 @@ _build/
 keys/
 
 # Virtualenv
+/deep_env
 /env
 /venv
 

@@ -8,7 +8,9 @@ if [ ! -d $env_name ]
 then
   echo "Have not found existing $env_name, creating a new one"
   # pip install virtualenv
-  virtualenv --python=python3.6 $env_name
+  sudo apt install -y python3-venv
+  # virtualenv --python=python3.6 $env_name
+  python3 -m venv $env_name
   . ./$env_name/bin/activate && echo "successfully activated $env_name python is $(which python)"
   if [ $use_pyrep -eq 1 ]
   then

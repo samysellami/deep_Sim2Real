@@ -11,7 +11,7 @@ In order to increase the robot accuracy, we use deep learning based methods to i
 
 # Download & Setup Instructions
 
--   1 - Clone project: git clone https://github.com/samysellami/Deep_Sim2Real
+-   1 - Clone project: git clone https://github.com/samysellami/deep_Sim2Real
 -   2 - cd Deep_Sim2Real/
 -   3 - Create virtual environment: virtualenv myenv
 -   4 - source myenv/bin/activate
@@ -19,11 +19,7 @@ In order to increase the robot accuracy, we use deep learning based methods to i
 
 # Training and testing the model
 
--   1 - To train the model run:
+-   1 - To train and test the model run:
     ```
-    deep-calibration train --config calib_config.ini --algo sac
-    ```
--   2 - To test the resulting model run:
-    ```
-    deep-calibration run --config calib_config.ini --algo sac --load-best
+    python deep_calibration/calibration/__main__.py
     ```
