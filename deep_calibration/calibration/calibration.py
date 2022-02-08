@@ -34,7 +34,7 @@ class Calibration:
         self._p_base = None
         self._R_base = None
         self._p_tool = None
-        self._delta = np.array([0.001, -0.002, 0.003, -0.002, 0.001])
+        self._delta = np.array([0.1, -0.2, 0.3, -0.2, 0.0])
 
         # default calibration parameters
         self._prms = {
@@ -166,20 +166,23 @@ class Calibration:
         )
         dists_goal = []
         for i in range(self._m):
-            dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
-            # dist_goal = LA.norm((np.array(self.delta_p(i=i, goal=1))))
+            # dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
+            dist_goal = LA.norm((np.array(self.delta_p(i=i, goal=1))))
             dists_goal.append(dist_goal)
 
         return np.mean(dists_goal)
 
     def dist_to_goal_j(self):
+        self.update_kinematics(
+            prms={'delta': self._delta}
+        )
         dists_goal = []
         for i in range(self._m):
             dist_goal = []
             for j in range(self._n):
                 dist_goal.append(self.delta_p(i=i, j=j))
-            dist_goal = np.mean(np.abs((np.array(dist_goal))))
-            # dist_goal = LA.norm((np.array(dist_goal)))
+            # dist_goal = np.mean(np.abs((np.array(dist_goal))))
+            dist_goal = LA.norm((np.array(dist_goal)))
             dists_goal.append(dist_goal)
 
         return np.mean(dists_goal)
@@ -191,6 +194,9 @@ class Calibration:
         """
         self._p_base = np.zeros(3)
         self._R_base = np.identity(3)
+        self._p_tool = []
+        print(f'\n distance to goal before the base and tool identification: {self.dist_to_goal() * 1000:.4f}')
+
         self.update_kinematics(
             prms={'delta': self._delta}
         )
@@ -262,6 +268,10 @@ class Calibration:
         return calib_prms
 
     def base_tool_after_tuning(self):
+        """
+            helper function to print the base and tool parameters after tuning 
+            (this function doesn't affect the code)
+        """
         R_base = self._R_base + self.skew(self._prms["base_phi"])
         p_base = self._p_base + self._prms["base_p"]
         p_tool = self._p_tool + self._prms['tool']
@@ -272,6 +282,9 @@ class Calibration:
         print('\n p_tool: \n', [p * 1000 for p in p_tool])
 
     def update_prms(self):
+        """
+            function to update the tuned parameters in the kinematics
+        """
         prms = save_read_data(
             file_name='best_action',
             io='r',

@@ -35,7 +35,7 @@ class CalibrationEnv(gym.Env):
         ],
         # quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
         quater=None,
-        lim={'base_p': 0.001, 'base_phi': 0.001, 'tool': 0.001, 'delta': 0.001},
+        lim={'base_p': 0.001, 'base_phi': 0.0001, 'tool': 0.001, 'delta': 0.001},
         prms=['base_p', 'base_phi', 'tool']
     ):
 
