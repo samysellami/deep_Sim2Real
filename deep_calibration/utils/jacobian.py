@@ -22,7 +22,7 @@ class Jacobian(Kinematics):
             R_base=R_base,
             p_tool=p_tool
         )
-
+        self.len_prms = prms['delta'].size
         self._RATIO = 1  # conversion ratio to meters
         self._x = np.array([1, 0, 0])
         self._y = np.array([0, 1, 0])
@@ -47,7 +47,7 @@ class Jacobian(Kinematics):
         return J
 
     def build_jacobian(self, q=np.array([0, 0, 0, 0, 0, 0]), j=None):
-        Jac = np.zeros((3, 5))
+        Jac = np.zeros((3, self.len_prms))
         k = 0
         l = 0
         for (_, joint) in self._prms.items():
@@ -59,5 +59,9 @@ class Jacobian(Kinematics):
 
                     Jac[:, l] = self.jacobian(O_i=O_i, O_n=O_n, T_i=T_i, param=param)
                     l += 1
+                if l == self.len_prms:
+                    break
                 k += 1
+            if l == self.len_prms:
+                break
         return Jac

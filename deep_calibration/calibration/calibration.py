@@ -34,13 +34,13 @@ class Calibration:
         self._p_base = None
         self._R_base = None
         self._p_tool = None
-        self._delta = np.array([0.1, -0.2, 0.3, -0.2, 0.0])
+        self._delta = np.array([0.01, -0.02, 0.03, -0.02])
 
         # default calibration parameters
         self._prms = {
             'base_p': np.zeros(3),
             'base_phi': np.zeros(3),
-            'delta': np.zeros(5),
+            'delta': np.zeros(4),
             'p_x': np.zeros(2),
             'p_y': np.zeros(3),
             'p_z': np.zeros(3),
@@ -54,13 +54,14 @@ class Calibration:
         self._configs = configs  # robot configurations used for calibration
         self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.05 * 0.001
+        self._noise_std = 0.00 * 0.001
 
         self.update_kinematics(
             prms={'delta': self._delta}
         )
         self._goal_pos = self.build_goal_pos()
         self._p_ij = self.build_p_ij()
+        self._delta = np.zeros(self._delta.size)
 
     def update_kinematics(self, prms={}):
         for prm in prms:
@@ -247,7 +248,7 @@ class Calibration:
 
         res1 = 0
         res2 = 0
-        A = np.zeros(5)
+        A = np.zeros(self._delta.size)
         b = np.zeros(1)
 
         for i in range(self._m):
@@ -274,7 +275,7 @@ class Calibration:
         """
         R_base = self._R_base + self.skew(self._prms["base_phi"])
         p_base = self._p_base + self._prms["base_p"]
-        p_tool = self._p_tool + self._prms['tool']
+        p_tool = self._p_tool + self._prms["tool"]
 
         print('\n base and tool parameters after tuning:')
         print('\n p_base: \n', p_base * 1000)

@@ -63,7 +63,7 @@ class Kinematics:
             "joint3": {"delta_x": delta[1], "p_z": p_z[1], "phi_y": phi_y[2], "phi_z": phi_z[1]},
             "joint4": {"delta_x": delta[2], "p_y": p_y[1], "p_z": p_z[2], "phi_y": phi_y[3]},
             "joint5": {"delta_z": delta[3], "p_x": p_x[1], "p_y": p_y[2], "phi_y": phi_y[4]},
-            "joint6": {"delta_x": delta[4]},
+            "joint6": {"delta_x": 0},
             'tool': [
                 tool[0, :], tool[1, :], tool[2, :]
             ]

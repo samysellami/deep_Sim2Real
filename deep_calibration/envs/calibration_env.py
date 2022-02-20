@@ -35,7 +35,7 @@ class CalibrationEnv(gym.Env):
         ],
         # quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
         quater=None,
-        lim={'base_p': 0.001, 'base_phi': 0.0001, 'tool': 0.001, 'delta': 0.001},
+        lim={'base_p': 0.01, 'base_phi': 0.0001, 'tool': 0.01, 'delta': 0.03 * np.array([1, 1, 1, 1])},
         prms=['base_p', 'base_phi', 'tool']
     ):
 
@@ -52,7 +52,7 @@ class CalibrationEnv(gym.Env):
         self._prms = {
             'base_p': np.zeros(3),
             'base_phi': np.zeros(3),
-            'delta': np.zeros(5),
+            'delta': np.zeros(4),
             'p_x': np.zeros(2),
             'p_y': np.zeros(3),
             'p_z': np.zeros(3),
@@ -71,7 +71,7 @@ class CalibrationEnv(gym.Env):
         self._prev_distance = None  # previous distance to goal used to compute the reward
         self._all_config = True  # if True compute the mean distance to goal using all configurations
         self._from_p_ij = True  # if True compute the goal position from the real measurements data
-        self._form_goal_pos = True  # if True compute the goal position from the kinematics without tools
+        self._form_goal_pos = False  # if True compute the goal position from the kinematics without tools
         self._tune = True
 
         if self._from_p_ij:
@@ -270,10 +270,11 @@ class CalibrationEnv(gym.Env):
             dists_goal = []
             for j in range(self._n_config):
                 if self._form_goal_pos:
-                    dists_goal.append(np.mean(np.abs(self.get_position(action) - self._goal_pos)))
+                    dists_goal.append(LA.norm(self.get_position(action) - self._goal_pos))
+                    # dists_goal.append(np.mean(np.abs(self.get_position(action) - self._goal_pos)))
                 else:
-                    # dists_goal.append(LA.norm(self.get_position(action) - self._goal_pos))
-                    dists_goal.append(np.mean(np.abs(self.get_position(action, tool=True) - self._goal_pos)))
+                    dists_goal.append(LA.norm(self.get_position(action, tool=True) - self._goal_pos))
+                    # dists_goal.append(np.mean(np.abs(self.get_position(action, tool=True) - self._goal_pos)))
                 self.setup_joints()
             dist_goal = np.mean(dists_goal)
         else:
@@ -334,9 +335,9 @@ class CalibrationEnv(gym.Env):
         if self.distance_to_goal(action) > 500:
             print('--------Reset: Divergence--------')
             done = True
-        elif self.distance_to_goal(action) < 0.00001:
-            print('--------Reset: Convergence--------')
-            done = True
+        # elif self.distance_to_goal(action) < 0.00001:
+        #     print('--------Reset: Convergence--------')
+        #     done = True
         elif self._count % 1000 == 0:
             # print('--------Reset: Timeout--------')
             done = True
