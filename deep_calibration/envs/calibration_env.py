@@ -36,11 +36,27 @@ class CalibrationEnv(gym.Env):
         # quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
         quater=None,
         lim={'base_p': 0.01, 'base_phi': 0.0001, 'tool': 0.01, 'delta': 0.03 * np.array([1, 1, 1, 1])},
-        prms=['base_p', 'base_phi', 'tool']
+        prms=['delta']
     ):
 
-        self._configs = config
-        self._config = config  # robot configurations
+        self._from_p_ij = True  # if True compute the goal position from the real measurements data
+        if self._from_p_ij:
+            identified_prms = save_read_data(
+                file_name='p_ij',
+                io='r',
+                data=None
+            )
+            self._p_ij = identified_prms['p_ij']
+            self._p_base = identified_prms['p_base']
+            self._R_base = identified_prms['R_base']
+            self._p_tool = identified_prms['p_tool']
+            self._prms = identified_prms['prms']
+            self._config = identified_prms['configs']
+            self._calib_prms = identified_prms['calib_prms']
+            self._goal_position = identified_prms['goal_position']
+
+        # self._configs = config
+        # self._config = config  # robot configurations
         self._n_config = len(self._config)  # number of configurations
         self.rand = 0  # use random configuration
         self._count = 0  # total time_steps
@@ -70,23 +86,8 @@ class CalibrationEnv(gym.Env):
         self._quater = quater
         self._prev_distance = None  # previous distance to goal used to compute the reward
         self._all_config = True  # if True compute the mean distance to goal using all configurations
-        self._from_p_ij = True  # if True compute the goal position from the real measurements data
         self._form_goal_pos = False  # if True compute the goal position from the kinematics without tools
         self._tune = True
-
-        if self._from_p_ij:
-            identified_prms = save_read_data(
-                file_name='p_ij',
-                io='r',
-                data=None
-            )
-            self._p_ij = identified_prms['p_ij']
-            self._p_base = identified_prms['p_base']
-            self._R_base = identified_prms['R_base']
-            self._p_tool = identified_prms['p_tool']
-            self._prms = identified_prms['prms']
-            self._calib_prms = identified_prms['calib_prms']
-            self._goal_position = identified_prms['goal_position']
 
         # setup joints and actions
         self._default_action = self.get_default_action()
@@ -349,7 +350,10 @@ def main():
     env = CalibrationEnv()
     # print('distance to goal: ', env.distance_to_goal(env._calib_prms) * 1000)
     action = env.action_space.sample()
-    print(f'distance to goal: {env.distance_to_goal(np.zeros(action.size)) * 1000:.4f}')
+    action = np.array([0.0117, -0.0239,  0.0224, -0.0179])
+    print('distance to goal: ', env.distance_to_goal(action) * 1000)
+
+    # print(f'distance to goal: {env.distance_to_goal(np.zeros(action.size)) * 1000:.4f}')
 
 
 if __name__ == "__main__":

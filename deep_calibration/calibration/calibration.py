@@ -50,11 +50,12 @@ class Calibration:
         }
 
         self._n = 3  # number of tools used for calibration
-        # self._configs = self.setup_configs()  # robot configurations used for calibration
+        self._c = 100
         self._configs = configs  # robot configurations used for calibration
-        self._c = len(self._configs)  # number of robot configurations
+        self._configs = self.setup_configs()  # robot configurations used for calibration
+        # self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.00 * 0.001
+        self._noise_std = 0.03 * 0.001
 
         self.update_kinematics(
             prms={'delta': self._delta}
@@ -106,11 +107,10 @@ class Calibration:
         ]  # partial pose measurements
 
     def setup_configs(self):
-        configs = []
+        configs = self._configs
         angle_limit = math.pi
-        self._c = 10
 
-        for m in range(self._c):
+        for m in range(self._c - len(self._configs)):
             q = np.array([
                 (2 * np.random.rand() - 1.) * angle_limit,
                 (2 * np.random.rand() - 1.) * angle_limit,
@@ -161,29 +161,23 @@ class Calibration:
             A[3 * j: 3 * (j + 1), 3 * (j + 2): 3 * (j + 3)] = R_i
         return A
 
-    def dist_to_goal(self):
+    def dist_to_goal(self, from_goal_pos=True):
         self.update_kinematics(
             prms={'delta': self._delta}
         )
         dists_goal = []
         for i in range(self._m):
-            # dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
-            dist_goal = LA.norm((np.array(self.delta_p(i=i, goal=1))))
-            dists_goal.append(dist_goal)
+            if from_goal_pos == False:
+                dist_goal = []
+                for j in range(self._n):
+                    dist_goal.append(self.delta_p(i=i, j=j))
 
-        return np.mean(dists_goal)
+                # dist_goal = np.mean(np.abs((np.array(dist_goal))))
+                dist_goal = LA.norm((np.array(dist_goal)))
 
-    def dist_to_goal_j(self):
-        self.update_kinematics(
-            prms={'delta': self._delta}
-        )
-        dists_goal = []
-        for i in range(self._m):
-            dist_goal = []
-            for j in range(self._n):
-                dist_goal.append(self.delta_p(i=i, j=j))
-            # dist_goal = np.mean(np.abs((np.array(dist_goal))))
-            dist_goal = LA.norm((np.array(dist_goal)))
+            else:
+                # dist_goal = np.mean(np.abs((np.array(self.delta_p(i=i, goal=1)))))
+                dist_goal = LA.norm((np.array(self.delta_p(i=i, goal=1))))
             dists_goal.append(dist_goal)
 
         return np.mean(dists_goal)

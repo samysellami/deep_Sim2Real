@@ -15,6 +15,7 @@ from deep_calibration.utils.callbacks import ProgressBarManager, ProgressBarCall
 from deep_calibration.utils.wrappers import NormalizeActionWrapper, TimeLimitWrapper
 from deep_calibration.utils.evaluation import evaluate_policy
 from deep_calibration.utils.exp_manager import ExperimentManager
+from deep_calibration.calibration.utils import *
 
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
@@ -80,9 +81,17 @@ def main(args, unknown_args):
     seed = loaded_args[args.algo]['seed']
     env_kwargs = {'prms': args.prms}
 
-    n_eval_episodes = 10
+    identified_prms = save_read_data(
+        file_name='p_ij',
+        io='r',
+        data=None
+    )
+    config = identified_prms['configs']
+
+    # n_eval_episodes = len(config)
+    n_eval_episodes = 1
     n_eval_test = 5
-    eval_freq = 10
+    eval_freq = 100
     n_trials = 100
 
     # Create the saving directory
