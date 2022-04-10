@@ -55,6 +55,7 @@ class DeepCalibration:
         for i in range(5):
             calib_prms = self._calib.identify_calib_prms()
             self._calib._delta += calib_prms
+            # print('\n ksi = ', ksi)
 
             # print('delta_calib_prms:', calib_prms)
             print(
@@ -63,6 +64,21 @@ class DeepCalibration:
             prms={'delta': self._calib._delta}
         )
         print('\n delta parameters:', self._calib._delta)
+
+    def step3(self):
+        # step 3 identification of the elastostatic parameters
+        print('\n ############# identification of the elastostic parameters ##################### \n')
+
+        for i in range(5):
+            ksi_prms = self._calib.identify_elastostatic_prms()
+            self._calib._ksi += np.diag(ksi_prms)
+
+            print(
+                f' distance to goal after calibration {i} : {self._calib.dist_to_goal(self._form_goal_pos) * 1000:.7f}')
+        self._calib.update_kinematics(
+            prms={'ksi': self._calib._ksi}
+        )
+        print('\n ksi parameters:', np.diag(self._calib._ksi))
 
     def deep_calibration(self, prms_to_tune):
         # tuning all the parameters
@@ -77,9 +93,9 @@ class DeepCalibration:
 
 
 def main():
-    np.set_printoptions(precision=4, suppress=True)
-    tune_all = True  # if True tune the calibration parameters using deep learning
-    calibrate = False  # if True use the partial pose meaasurement calibration
+    np.set_printoptions(precision=7, suppress=True)
+    tune_all = False  # if True tune the calibration parameters using deep learning
+    calibrate = True  # if True use the partial pose meaasurement calibration
 
     epsilon_ = 10
     epsilon = 10
@@ -88,6 +104,7 @@ def main():
     print(f'\n initial distance to goal: {deep_calib._calib.dist_to_goal(deep_calib._form_goal_pos) * 1000:.4f}')
 
     while epsilon > 0.0001 and calibrate:
+        # for i in range(5):
         # step 1 identification of p_base, phi_base and u_tool
         deep_calib.step1()
         deep_calib.save_data()
@@ -99,7 +116,17 @@ def main():
         dist = deep_calib._calib.dist_to_goal(deep_calib._form_goal_pos) * 1000
         epsilon = np.abs(dist - epsilon_)
         epsilon_ = dist
-        print("epsilon : ", epsilon)
+
+    epsilon_ = 10
+    epsilon = 10
+    while epsilon > 0.000001 and calibrate:
+        # for i in range(5):
+        # step 3 identification of the elastostatic parameters
+        deep_calib.step3()
+
+        dist = deep_calib._calib.dist_to_goal(deep_calib._form_goal_pos) * 1000
+        epsilon = np.abs(dist - epsilon_)
+        epsilon_ = dist
 
     if tune_all:
         # tuning all the parameters
@@ -108,8 +135,8 @@ def main():
         deep_calib.deep_calibration(prms_to_tune)
         # deep_calib.step1()
 
-    print('\n final delta parameters:', deep_calib._calib._delta)
-    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.4f}')
+    # print('\n final delta parameters:', deep_calib._calib._delta)
+    # print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.4f}')
 
 
 if __name__ == "__main__":

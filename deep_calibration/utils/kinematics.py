@@ -2,6 +2,8 @@ import numpy as np
 from numpy.linalg import multi_dot
 import math
 import quaternion
+from sqlalchemy import true
+from deep_calibration.utils.jacobian import Jacobian
 
 
 class Kinematics:
@@ -28,6 +30,7 @@ class Kinematics:
         p_base=None,
         R_base=None,
         p_tool=None,
+        ksi=np.zeros((6, 6))
     ):
 
         # DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
@@ -58,7 +61,7 @@ class Kinematics:
                 "phi_x": 0, "phi_y": 0, "phi_z": 0,
                 'p_base': base_p, 'phi_base': base_phi
             },
-            "joint1": {"p_x": p_x[0], "p_y": p_y[0], "phi_y": phi_y[0]},
+            "joint1": {"delta_z": 0, "p_x": p_x[0], "p_y": p_y[0], "phi_y": phi_y[0]},
             "joint2": {"delta_x": delta[0], "p_z": p_z[0], "phi_y": phi_y[1], "phi_z": phi_z[0]},
             "joint3": {"delta_x": delta[1], "p_z": p_z[1], "phi_y": phi_y[2], "phi_z": phi_z[1]},
             "joint4": {"delta_x": delta[2], "p_y": p_y[1], "p_z": p_z[2], "phi_y": phi_y[3]},
@@ -66,7 +69,8 @@ class Kinematics:
             "joint6": {"delta_x": 0},
             'tool': [
                 tool[0, :], tool[1, :], tool[2, :]
-            ]
+            ],
+            "ksi": ksi,
         }
         self._quater = quater
         self._p_base = p_base
@@ -79,6 +83,24 @@ class Kinematics:
             ]
         else:
             self._p_tool = p_tool
+
+        # relative position of the force ap plied
+        self._p_force = np.array([277.23, -46.53, -93.87]) * 0.001
+
+        # Jacobian of the robot with and without the applied force
+        self._jacob = Jacobian(self)
+        self._jacob_F = Jacobian(
+            self,
+            prms_J={"joint1": "delta_z",
+                    "joint2": "delta_x",
+                    "joint3": "delta_x",
+                    "joint4": "delta_x",
+                    "joint5": "delta_z",
+                    "joint6": "delta_x"}
+        )
+
+        # elastostatic deflections
+        self._theta = np.zeros(6)
 
     def R_baseq(self, q):
         Rb = np.zeros((4, 4))
@@ -154,12 +176,19 @@ class Kinematics:
         """
         return np.array([[0, -phi[2], phi[1]], [phi[2], 0, -phi[0]], [-phi[1], phi[0], 0]])
 
-    def forward_kinematics(self, k=None, j=None, q=np.array([0, 0, 0, 0, 0, 0])):
+    def forward_kinematics(self, k=None, j=None, q=np.array([0, 0, 0, 0, 0, 0]), ksi=None, F=None, f=None):
         """
         Computes the forward kinematics of the UR10 arm robot
                 :param q: (np.ndarray) the joint angles
                 :return: (np.ndarray) the cartesian position and orientation of the end effector
         """
+        # elastostatic parameters
+        if ksi is not None:
+            if F is None:
+                raise ValueError('You need to specify the value force F')
+            J_if = self._jacob_F.build_jacobian(q=q, j=j, f=True)
+            self._theta = self._calib_prms["ksi"].dot((J_if.transpose()).dot(F))
+            # print('theta = ', self._theta)
 
         if self._p_base is not None and self._R_base is not None:
             H_base = [np.identity(4)]
@@ -193,21 +222,21 @@ class Kinematics:
                 k = k + 7
 
         H_01 = [
-            self.Rz(q[0]),
+            self.Rz(q[0] + self._theta[0]),
             self.Tx(self._DH_used["joint1"] + self._calib_prms["joint1"]["p_x"]),
             self.Ty(self._calib_prms["joint1"]["p_y"]),
             self.Ry(self._calib_prms["joint1"]["phi_y"]),
         ]
 
         H_12 = [
-            self.Rx(q[1] + self._calib_prms["joint2"]["delta_x"]),
+            self.Rx(q[1] + self._calib_prms["joint2"]["delta_x"] + self._theta[1]),
             self.Tz(self._DH_used["joint2"] + self._calib_prms["joint2"]["p_z"]),
             self.Ry(self._calib_prms["joint2"]["phi_y"]),
             self.Rz(self._calib_prms["joint2"]["phi_z"]),
         ]
 
         H_23 = [
-            self.Rx(q[2] + self._calib_prms["joint3"]["delta_x"]),
+            self.Rx(q[2] + self._calib_prms["joint3"]["delta_x"] + self._theta[2]),
             self.Tx(self._DH_used["joint3"]["x"]),  # added
             self.Tz(self._DH_used["joint3"]["z"] + self._calib_prms["joint3"]["p_z"]),
             self.Ry(self._calib_prms["joint3"]["phi_y"]),
@@ -215,7 +244,7 @@ class Kinematics:
         ]
 
         H_34 = [
-            self.Rx(q[3] + self._calib_prms["joint4"]["delta_x"]),
+            self.Rx(q[3] + self._calib_prms["joint4"]["delta_x"] + self._theta[3]),
             self.Tx(self._DH_used["joint4"]),  # added
             self.Ty(self._calib_prms["joint4"]["p_y"]),
             self.Tz(self._calib_prms["joint4"]["p_z"]),
@@ -223,7 +252,7 @@ class Kinematics:
         ]
 
         H_45 = [
-            self.Rz(q[4] + self._calib_prms["joint5"]["delta_z"]),
+            self.Rz(q[4] + self._calib_prms["joint5"]["delta_z"] + self._theta[4]),
             self.Tx(self._calib_prms["joint5"]["p_x"]),
             self.Ty(self._calib_prms["joint5"]["p_y"]),
             self.Tz(self._DH_used["joint5"]),  # added
@@ -231,7 +260,7 @@ class Kinematics:
         ]
 
         H_56 = [
-            self.Rx(q[5] + self._calib_prms["joint6"]["delta_x"]),
+            self.Rx(q[5] + self._calib_prms["joint6"]["delta_x"] + self._theta[5]),
             self.Tx(self._DH_used["joint6"]),  # added
         ]
 
@@ -240,6 +269,9 @@ class Kinematics:
             if self._p_tool is None:
                 raise ValueError('p_tool should be defined to use j index')
             H_tool[0][:3, 3] = self._p_tool[j] + self._calib_prms['tool'][j]
+
+        if f is not None:
+            H_tool[0][:3, 3] = self._p_force
 
         H_total = H_base + H_01 + H_12 + H_23 + H_34 + H_45 + H_56 + H_tool
 

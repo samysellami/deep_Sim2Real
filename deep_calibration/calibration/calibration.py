@@ -1,6 +1,8 @@
 import numpy as np
 import math
 
+from torch import true_divide
+
 from deep_calibration.utils.kinematics import Kinematics
 from deep_calibration.utils.jacobian import Jacobian
 from numpy import linalg as LA
@@ -34,7 +36,15 @@ class Calibration:
         self._p_base = None
         self._R_base = None
         self._p_tool = None
+
+        # parameters to identify
         self._delta = np.array([0.01, -0.02, 0.03, -0.02])
+        self._ksi = np.array([[5, 0, 0, 0, 0, 0],
+                              [0, 2, 0, 0, 0, 0],
+                              [0, 0, 1, 0, 0, 0],
+                              [0, 0, 0, 4, 0, 0],
+                              [0, 0, 0, 0, 8, 0],
+                              [0, 0, 0, 0, 0, 6]]) * 0.000001
 
         # default calibration parameters
         self._prms = {
@@ -47,22 +57,29 @@ class Calibration:
             'phi_y': np.zeros(5),
             'phi_z': np.zeros(2),
             'tool': np.zeros((3, 3)),
+            "ksi": np.zeros((6, 6))
         }
 
         self._n = 3  # number of tools used for calibration
-        self._c = 100
+        self._c = 10
         self._configs = configs  # robot configurations used for calibration
         self._configs = self.setup_configs()  # robot configurations used for calibration
         # self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.03 * 0.001
+        self._noise_std = 0.00 * 0.001
 
         self.update_kinematics(
-            prms={'delta': self._delta}
+            prms={'delta': self._delta, 'ksi': self._ksi}
         )
+        # measurement data
+        self._F = np.array([0, 360, 560])
         self._goal_pos = self.build_goal_pos()
-        self._p_ij = self.build_p_ij()
+        self._p_ij, self._p_ij_ksi = self.build_p_ij()
+        # the force applied to the end effector
+
         self._delta = np.zeros(self._delta.size)
+        self._ksi = np.zeros((len(self._ksi), len(self._ksi)))
+        # self._elastostatic = True  # if true, compute the elastostatic parameters with the geometric ones
 
     def update_kinematics(self, prms={}):
         for prm in prms:
@@ -80,7 +97,8 @@ class Calibration:
             tool=self._prms['tool'],
             p_base=self._p_base,
             R_base=self._R_base,
-            p_tool=self._p_tool
+            p_tool=self._p_tool,
+            ksi=self._prms['ksi']
         )
 
     def noise(self):
@@ -95,16 +113,26 @@ class Calibration:
         ]  # goal position
 
     def build_p_ij(self):
-        return [
+        return ([
             np.array(
                 [
                     self.p_robot(i, j=0) + self.noise(),
                     self.p_robot(i, j=1) + self.noise(),
                     self.p_robot(i, j=2) + self.noise(),
-                ]
+                ],
             )
             for i in range(self._m)
-        ]  # partial pose measurements
+        ],   # partial pose measurements
+            [
+            np.array(
+                [
+                    self.p_robot(i, j=0, ksi=True) + self.noise(),
+                    self.p_robot(i, j=1, ksi=True) + self.noise(),
+                    self.p_robot(i, j=2, ksi=True) + self.noise(),
+                ],
+            )
+            for i in range(self._m)
+        ])  # partial pose measurements with force applied
 
     def setup_configs(self):
         configs = self._configs
@@ -133,21 +161,28 @@ class Calibration:
         """
         return np.array([[0, -phi[2], phi[1]], [phi[2], 0, -phi[0]], [-phi[1], phi[0], 0]])
 
-    def p_robot(self, i=0, j=None):
+    def p_robot(self, i=0, j=None, ksi=None):
         if j is not None:
-            return self._FK.forward_kinematics(q=self.config(i), j=j)[0]
+            if ksi is None:
+                return self._FK.forward_kinematics(q=self.config(i), j=j)[0]
+            else:
+                return self._FK.forward_kinematics(q=self.config(i), j=j, ksi=ksi, F=self._F)[0]
+
         return self._FK.forward_kinematics(q=self.config(i))[0]
 
     def R_robot(self, i=0):
         return self._FK.forward_kinematics(q=self.config(i))[1]
 
-    def delta_p(self, i=0, j=None, goal=None):
+    def delta_p(self, i=0, j=None, goal=None, ksi=None):
         if j is None:
             if goal is not None:
                 return (self._goal_pos[i] - self.p_robot(i=i)).flatten()
             return (self._p_ij[i] - self.p_robot(i=i)).flatten()
         else:
-            return (self._p_ij[i][j] - self.p_robot(i=i, j=j)).flatten()
+            if ksi is None:
+                return (self._p_ij[i][j] - self.p_robot(i=i, j=j)).flatten()
+            else:
+                return (self._p_ij_ksi[i][j] - self.p_robot(i=i, j=j, ksi=ksi)).flatten()
 
     def construct_A(self, i):
         eye = np.identity(3)
@@ -163,7 +198,7 @@ class Calibration:
 
     def dist_to_goal(self, from_goal_pos=True):
         self.update_kinematics(
-            prms={'delta': self._delta}
+            prms={'delta': self._delta, 'ksi': self._ksi}
         )
         dists_goal = []
         for i in range(self._m):
@@ -233,12 +268,6 @@ class Calibration:
         self.update_kinematics(
             prms={'delta': self._delta}
         )
-        jacob = Jacobian(
-            prms=self._prms,
-            p_base=self._p_base,
-            R_base=self._R_base,
-            p_tool=self._p_tool
-        )
 
         res1 = 0
         res2 = 0
@@ -247,9 +276,9 @@ class Calibration:
 
         for i in range(self._m):
             for j in range(self._n):
-                J_ij = jacob.build_jacobian(q=self.config(i), j=j)
-                res1 += np.dot(J_ij.transpose(), J_ij)
-                res2 += np.dot(J_ij.transpose(), self.delta_p(i=i, j=j))
+                J_ij = self._FK._jacob.build_jacobian(q=self.config(i), j=j)
+                # res1 += np.dot(J_ij.transpose(), J_ij)
+                # res2 += np.dot(J_ij.transpose(), self.delta_p(i=i, j=j))
 
                 A = np.vstack((A, J_ij))
                 b = np.hstack((b, self.delta_p(i=i, j=j)))
@@ -260,11 +289,44 @@ class Calibration:
         A = np.delete(A, 0, 0)
         b = np.delete(b, 0, 0)
         calib_prms = np.dot(np.linalg.pinv(A), b)
+
         return calib_prms
+
+        # including the elastostatic parameters in the model
+    def identify_elastostatic_prms(self):
+
+        self.update_kinematics(
+            prms={'ksi': self._ksi}
+        )
+        B = np.zeros(len(self._ksi))
+        b = np.zeros(1)
+
+        for i in range(self._m):
+            for j in range(self._n):
+                # J_ij_ = self._FK._jacob.build_jacobian(q=self.config(i), j=j)
+                J_ij = self._FK._jacob_F.build_jacobian(q=self.config(i), j=j)
+                # res1 += np.dot(J_ij.transpose(), J_ij)
+                # res2 += np.dot(J_ij.transpose(), self.delta_p(i=i, j=j))
+
+                A = np.zeros((3, J_ij.shape[1]))
+                for k in range(J_ij.shape[1]):
+                    A[:, k] = (J_ij[:, k][:, None].dot(J_ij[:, k][None, :]).dot(self._F))
+
+                B = np.vstack((B,  A))
+                b = np.hstack((b, self.delta_p(i=i, j=j, ksi=True)))  # - J_ij_.dot(self._delta)
+
+        # calib_prms = np.dot(np.linalg.inv(res1), res2)
+        # accuracy = np.linalg.inv(res1) * self._noise_std * 1000
+
+        B = np.delete(B, 0, 0)
+        b = np.delete(b, 0, 0)
+        ksi_prms = np.dot(np.linalg.pinv(B), b)
+
+        return ksi_prms
 
     def base_tool_after_tuning(self):
         """
-            helper function to print the base and tool parameters after tuning 
+            helper function to print the base and tool parameters after tuning
             (this function doesn't affect the code)
         """
         R_base = self._R_base + self.skew(self._prms["base_phi"])
@@ -302,7 +364,7 @@ class Calibration:
 
             ind_ = ind
         self.update_kinematics(
-            prms={'delta': self._delta}
+            prms={'delta': self._delta, 'ksi': self._ksi}
         )
 
 
