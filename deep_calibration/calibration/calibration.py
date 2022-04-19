@@ -39,25 +39,21 @@ class Calibration:
 
         # parameters to identify
         self._delta = np.array([0.01, -0.02, 0.03, -0.02])
-        self._ksi = np.array([[5, 0, 0, 0, 0, 0],
-                              [0, 2, 0, 0, 0, 0],
-                              [0, 0, 1, 0, 0, 0],
-                              [0, 0, 0, 4, 0, 0],
-                              [0, 0, 0, 0, 8, 0],
-                              [0, 0, 0, 0, 0, 6]]) * 0.000001
+        self._ksi = np.diag([5, 2, 3, 4, 8, 5]) * 0.000001
+        self._noise_std = 0.05 * 0.001  # noise for measurement simulation
 
         # default calibration parameters
         self._prms = {
             'base_p': np.zeros(3),
             'base_phi': np.zeros(3),
-            'delta': np.zeros(4),
+            'delta': np.zeros(self._delta.size),
             'p_x': np.zeros(2),
             'p_y': np.zeros(3),
             'p_z': np.zeros(3),
             'phi_y': np.zeros(5),
             'phi_z': np.zeros(2),
             'tool': np.zeros((3, 3)),
-            "ksi": np.zeros((6, 6))
+            "ksi": np.zeros(self._ksi.shape)
         }
 
         self._n = 3  # number of tools used for calibration
@@ -66,7 +62,6 @@ class Calibration:
         self._configs = self.setup_configs()  # robot configurations used for calibration
         # self._c = len(self._configs)  # number of robot configurations
         self._m = self._c  # number of measurements configurations
-        self._noise_std = 0.00 * 0.001
 
         self.update_kinematics(
             prms={'delta': self._delta, 'ksi': self._ksi}

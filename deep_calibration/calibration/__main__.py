@@ -136,7 +136,7 @@ def main():
         # deep_calib.step1()
 
     # print('\n final delta parameters:', deep_calib._calib._delta)
-    # print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.4f}')
+    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.7f}')
 
 
 if __name__ == "__main__":

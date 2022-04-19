@@ -30,7 +30,15 @@ class Kinematics:
         p_base=None,
         R_base=None,
         p_tool=None,
-        ksi=np.zeros((6, 6))
+        ksi=np.zeros((5, 5)),
+        prms_J={
+            "joint1": "delta_z",
+            "joint2": "delta_x",
+            "joint3": "delta_x",
+            "joint4": "delta_x",
+            "joint5": "delta_z",
+            "joint6": "delta_x"
+        }
     ):
 
         # DH  = [a, alpha, d, theta] --- DH parameters of the UR10 arm
@@ -89,18 +97,14 @@ class Kinematics:
 
         # Jacobian of the robot with and without the applied force
         self._jacob = Jacobian(self)
+        self._prms_J = {joint: prms_J[joint] for count, joint in enumerate(prms_J.keys()) if count < len(ksi)}
         self._jacob_F = Jacobian(
             self,
-            prms_J={"joint1": "delta_z",
-                    "joint2": "delta_x",
-                    "joint3": "delta_x",
-                    "joint4": "delta_x",
-                    "joint5": "delta_z",
-                    "joint6": "delta_x"}
+            self._prms_J
         )
 
         # elastostatic deflections
-        self._theta = np.zeros(6)
+        self._theta = np.zeros(len(self._prms_J))
 
     def R_baseq(self, q):
         Rb = np.zeros((4, 4))
@@ -260,7 +264,8 @@ class Kinematics:
         ]
 
         H_56 = [
-            self.Rx(q[5] + self._calib_prms["joint6"]["delta_x"] + self._theta[5]),
+            self.Rx(q[5] + self._calib_prms["joint6"]["delta_x"] + (self._theta[5] if len(self._theta) == 6 else 0)),
+            # self.Rx(q[5] + self._calib_prms["joint6"]["delta_x"]),
             self.Tx(self._DH_used["joint6"]),  # added
         ]
 
