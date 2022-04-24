@@ -74,7 +74,7 @@ class DeepCalibration:
             self._calib._ksi += np.diag(ksi_prms)
 
             print(
-                f' distance to goal after calibration {i} : {self._calib.dist_to_goal(self._form_goal_pos) * 1000:.7f}')
+                f' distance to goal after calibration {i} : {self._calib.dist_to_goal(self._form_goal_pos) * 1000:.4f}')
         self._calib.update_kinematics(
             prms={'ksi': self._calib._ksi}
         )
@@ -136,7 +136,7 @@ def main():
         # deep_calib.step1()
 
     # print('\n final delta parameters:', deep_calib._calib._delta)
-    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.7f}')
+    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.4f}')
 
 
 if __name__ == "__main__":

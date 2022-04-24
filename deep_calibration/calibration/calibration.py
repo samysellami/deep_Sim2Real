@@ -74,7 +74,7 @@ class Calibration:
 
         self._delta = np.zeros(self._delta.size)
         self._ksi = np.zeros((len(self._ksi), len(self._ksi)))
-        # self._elastostatic = True  # if true, compute the elastostatic parameters with the geometric ones
+        # self._ksi = np.zeros((len(self._ksi) - 1, len(self._ksi) - 1))
 
     def update_kinematics(self, prms={}):
         for prm in prms:
