@@ -3,11 +3,11 @@ import math
 
 from torch import true_divide
 
-from deep_calibration.utils.kinematics import Kinematics
-from deep_calibration.utils.jacobian import Jacobian
+from deep_calibration.calibration.utils.kinematics import Kinematics
+from deep_calibration.calibration.utils.jacobian import Jacobian
 from numpy import linalg as LA
 
-from deep_calibration.calibration.utils import *
+from deep_calibration.calibration.utils.utils import *
 
 
 class Calibration:
@@ -40,7 +40,7 @@ class Calibration:
         # parameters to identify
         self._delta = np.array([0.01, -0.02, 0.03, -0.02])
         self._ksi = np.diag([5, 2, 3, 4, 8, 5]) * 0.000001
-        self._noise_std = 0.05 * 0.001  # noise for measurement simulation
+        self._noise_std = 0.00 * 0.001  # noise for measurement simulation
 
         # default calibration parameters
         self._prms = {
@@ -299,7 +299,7 @@ class Calibration:
         for i in range(self._m):
             for j in range(self._n):
                 # J_ij_ = self._FK._jacob.build_jacobian(q=self.config(i), j=j)
-                J_ij = self._FK._jacob_F.build_jacobian(q=self.config(i), j=j)
+                J_ij = self._FK._jacob_theta.build_jacobian(q=self.config(i), j=j)
                 # res1 += np.dot(J_ij.transpose(), J_ij)
                 # res2 += np.dot(J_ij.transpose(), self.delta_p(i=i, j=j))
 

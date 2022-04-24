@@ -7,7 +7,7 @@ import json
 import yaml
 
 from deep_calibration import script_dir
-from deep_calibration.utils.kinematics import Kinematics
+from deep_calibration.calibration.utils.kinematics import Kinematics
 from deep_calibration.utils.callbacks import SaveOnBestTrainingRewardCallback
 from deep_calibration.utils.callbacks import EvalCallback
 from deep_calibration.utils.callbacks import PlottingCallback
@@ -15,7 +15,7 @@ from deep_calibration.utils.callbacks import ProgressBarManager, ProgressBarCall
 from deep_calibration.utils.wrappers import NormalizeActionWrapper, TimeLimitWrapper
 from deep_calibration.utils.evaluation import evaluate_policy
 from deep_calibration.utils.exp_manager import ExperimentManager
-from deep_calibration.calibration.utils import *
+from deep_calibration.calibration.utils.utils import *
 
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC

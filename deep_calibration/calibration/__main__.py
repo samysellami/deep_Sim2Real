@@ -1,7 +1,7 @@
 import numpy as np
 from sqlalchemy import true
 
-from deep_calibration.calibration.utils import *
+from deep_calibration.calibration.utils.utils import *
 from deep_calibration.__main__ import main as deep_calib
 from deep_calibration.calibration.calibration import Calibration
 
@@ -136,7 +136,7 @@ def main():
         # deep_calib.step1()
 
     # print('\n final delta parameters:', deep_calib._calib._delta)
-    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.4f}')
+    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.7f}')
 
 
 if __name__ == "__main__":

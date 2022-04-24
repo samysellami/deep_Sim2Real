@@ -8,9 +8,9 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 from gym import Space
 
-from deep_calibration.utils.kinematics import Kinematics
+from deep_calibration.calibration.utils.kinematics import Kinematics
 from deep_calibration import script_dir
-from deep_calibration.calibration.utils import *
+from deep_calibration.calibration.utils.utils import *
 
 
 class CalibrationEnv(gym.Env):

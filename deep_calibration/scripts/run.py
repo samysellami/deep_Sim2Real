@@ -18,7 +18,7 @@ from deep_calibration.utils.utils import ALGOS, create_test_env, get_latest_run_
 from deep_calibration.utils.exp_manager import ExperimentManager
 from deep_calibration.utils.utils import StoreDict
 from deep_calibration import script_dir
-from deep_calibration.calibration.utils import *
+from deep_calibration.calibration.utils.utils import *
 
 
 def parse_args():
