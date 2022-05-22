@@ -65,17 +65,17 @@ class CalibrationEnv(gym.Env):
         # self._config = self.setup_configs()
 
         # default calibration parameters
-        self._prms = {
-            'base_p': np.zeros(3),
-            'base_phi': np.zeros(3),
-            'delta': np.zeros(4),
-            'p_x': np.zeros(2),
-            'p_y': np.zeros(3),
-            'p_z': np.zeros(3),
-            'phi_y': np.zeros(5),
-            'phi_z': np.zeros(2),
-            'tool': np.zeros((3, 3)),
-        }
+        # self._prms = {
+        #     'base_p': np.zeros(3),
+        #     'base_phi': np.zeros(3),
+        #     'delta': np.zeros(4),
+        #     'p_x': np.zeros(2),
+        #     'p_y': np.zeros(3),
+        #     'p_z': np.zeros(3),
+        #     'phi_y': np.zeros(5),
+        #     'phi_z': np.zeros(2),
+        #     'tool': np.zeros((3, 3)),
+        # }
         # parameters to tune
         self._prms_action = {key: value for (key, value) in self._prms.items() if key in prms}
 

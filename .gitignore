@@ -44,3 +44,4 @@ MUJOCO_LOG.TXT
 
 # saved models
 saved_models/
+saved_data/
