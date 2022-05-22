@@ -1,4 +1,5 @@
 import numpy as np
+from deep_calibration.calibration.utils.utils import get_length_dict
 
 
 class Jacobian():
@@ -6,21 +7,31 @@ class Jacobian():
             Jacobian of the UR10 robot calibration
     """
 
-    def __init__(self, FK,
-                 prms_J={"joint2": "delta_x",
-                         "joint3": "delta_x",
-                         "joint4": "delta_x",
-                         "joint5": "delta_z"}):
+    def __init__(
+        self,
+        FK,
+        prms_J={
+            "joint2": ["delta_x"],
+            "joint3": ["delta_x"],
+            "joint4": ["delta_x"],
+            "joint5": ["delta_z"]
+        },
+        jacob_link = None,
+    ):
 
         self._FK = FK
+        if jacob_link is not None:
+            self._FK._p_base  = None
+            self._FK._R_base = None
         self._prms_J = prms_J
-        self.len_prms = len(prms_J)
+        self.len_prms = get_length_dict(prms_J)
         self._RATIO = 1  # conversion ratio to meters
         self._x = np.array([1, 0, 0])
         self._y = np.array([0, 1, 0])
         self._z = np.array([0, 0, 1])
         self._prms = self._FK._calib_prms.copy()
-        del self._prms["base"]
+        if jacob_link is  None:
+            del self._prms["base"]
         del self._prms["tool"]
         del self._prms["ksi"]
 
@@ -45,12 +56,13 @@ class Jacobian():
         l = 0
         for (joint, params) in self._prms.items():
             for (param, _) in params.items():
-                if param == self._prms_J.get(joint):
-                    O_i = self._FK.forward_kinematics(q=q, k=k)[0]
-                    O_n = self._FK.forward_kinematics(q=q, j=j, f=f)[0]
-                    T_i = self._FK.forward_kinematics(q=q, k=k)[1]
+                if self._prms_J.get(joint) is not None:
+                    if param in self._prms_J.get(joint):
+                        O_i = self._FK.forward_kinematics(q=q, k=k)[0]
+                        O_n = self._FK.forward_kinematics(q=q, j=j, f=f)[0]
+                        T_i = self._FK.forward_kinematics(q=q, k=k)[1]
 
-                    Jac[:, l] = self.jacobian(O_i=O_i, O_n=O_n, T_i=T_i, param=param)
-                    l += 1
+                        Jac[:, l] = self.jacobian(O_i=O_i, O_n=O_n, T_i=T_i, param=param)
+                        l += 1
                 k += 1
         return Jac

@@ -1,4 +1,5 @@
 import numpy as np
+from regex import F
 from sqlalchemy import true
 
 from deep_calibration.calibration.utils.utils import *
@@ -78,7 +79,7 @@ class DeepCalibration:
         self._calib.update_kinematics(
             prms={'ksi': self._calib._ksi}
         )
-        print('\n ksi parameters:', np.diag(self._calib._ksi))
+        print('\n ksi parameters:', np.diag(self._calib._ksi) * 1000000)
 
     def deep_calibration(self, prms_to_tune):
         # tuning all the parameters
@@ -94,8 +95,8 @@ class DeepCalibration:
 
 def main():
     np.set_printoptions(precision=7, suppress=True)
-    tune_all = False  # if True tune the calibration parameters using deep learning
-    calibrate = True  # if True use the partial pose meaasurement calibration
+    tune_all = True  # if True tune the calibration parameters using deep learning
+    calibrate = False  # if True use the partial pose meaasurement calibration
 
     epsilon_ = 10
     epsilon = 10
@@ -119,7 +120,7 @@ def main():
 
     epsilon_ = 10
     epsilon = 10
-    while epsilon > 0.000001 and calibrate:
+    while epsilon > 0.00000001 and calibrate:
         # for i in range(5):
         # step 3 identification of the elastostatic parameters
         deep_calib.step3()
@@ -136,7 +137,7 @@ def main():
         # deep_calib.step1()
 
     # print('\n final delta parameters:', deep_calib._calib._delta)
-    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(True) * 1000:.7f}')
+    print(f'\n final distance to goal: {deep_calib._calib.dist_to_goal(False) * 1000:.7f}')
 
 
 if __name__ == "__main__":

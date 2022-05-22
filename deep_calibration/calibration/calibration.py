@@ -1,7 +1,8 @@
 import numpy as np
 import math
 
-from torch import true_divide
+from sqlalchemy import true
+
 
 from deep_calibration.calibration.utils.kinematics import Kinematics
 from deep_calibration.calibration.utils.jacobian import Jacobian
@@ -39,8 +40,8 @@ class Calibration:
 
         # parameters to identify
         self._delta = np.array([0.01, -0.02, 0.03, -0.02])
-        self._ksi = np.diag([5, 2, 3, 4, 8, 5]) * 0.000001
-        self._noise_std = 0.00 * 0.001  # noise for measurement simulation
+        self._ksi = np.diag([5, 2, 3, 4, 8, 0]) * 0.000001
+        self._noise_std = 0.0 * 0.001  # noise for measurement simulation
 
         # default calibration parameters
         self._prms = {
@@ -66,6 +67,9 @@ class Calibration:
         self.update_kinematics(
             prms={'delta': self._delta, 'ksi': self._ksi}
         )
+        # elastostatic calibration
+        self._ksi_theta = True # perform the joints elastostatic calibration
+        self._ksi_link = None # perform the links elastostatic calibration
         # measurement data
         self._F = np.array([0, 360, 560])
         self._goal_pos = self.build_goal_pos()
@@ -73,8 +77,8 @@ class Calibration:
         # the force applied to the end effector
 
         self._delta = np.zeros(self._delta.size)
-        self._ksi = np.zeros((len(self._ksi), len(self._ksi)))
-        # self._ksi = np.zeros((len(self._ksi) - 1, len(self._ksi) - 1))
+        # self._ksi = np.zeros((len(self._ksi), len(self._ksi)))
+        self._ksi = np.zeros((len(self._ksi) - 1, len(self._ksi) - 1))
 
     def update_kinematics(self, prms={}):
         for prm in prms:
@@ -121,9 +125,9 @@ class Calibration:
             [
             np.array(
                 [
-                    self.p_robot(i, j=0, ksi=True) + self.noise(),
-                    self.p_robot(i, j=1, ksi=True) + self.noise(),
-                    self.p_robot(i, j=2, ksi=True) + self.noise(),
+                    self.p_robot(i, j=0, ksi=self._ksi_theta, ksi_link=self._ksi_link) + self.noise(),
+                    self.p_robot(i, j=1, ksi=self._ksi_theta, ksi_link=self._ksi_link) + self.noise(),
+                    self.p_robot(i, j=2, ksi=self._ksi_theta, ksi_link=self._ksi_link) + self.noise(),
                 ],
             )
             for i in range(self._m)
@@ -156,12 +160,12 @@ class Calibration:
         """
         return np.array([[0, -phi[2], phi[1]], [phi[2], 0, -phi[0]], [-phi[1], phi[0], 0]])
 
-    def p_robot(self, i=0, j=None, ksi=None):
+    def p_robot(self, i=0, j=None, ksi=None, ksi_link=None):
         if j is not None:
             if ksi is None:
                 return self._FK.forward_kinematics(q=self.config(i), j=j)[0]
             else:
-                return self._FK.forward_kinematics(q=self.config(i), j=j, ksi=ksi, F=self._F)[0]
+                return self._FK.forward_kinematics(q=self.config(i), j=j, ksi=ksi, ksi_link=ksi_link,  F=self._F)[0]
 
         return self._FK.forward_kinematics(q=self.config(i))[0]
 
