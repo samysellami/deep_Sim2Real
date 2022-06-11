@@ -49,6 +49,8 @@ class NormalizeActionWrapper(gym.Wrapper):
     obs, reward, done, info = self.env.step(rescaled_action)
     return obs, reward, done, info
 
+  def get_attributes(self):
+      return self.env.p_base, self.env.R_base, self.env.p_tool
 
 class TimeLimitWrapper(gym.Wrapper):
   """

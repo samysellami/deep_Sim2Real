@@ -35,7 +35,13 @@ class CalibrationEnv(gym.Env):
         ],
         # quater=np.array([0.9998, 0.0100, 0.0098, 0.0100]),
         quater=None,
-        lim={'base_p': 0.01, 'base_phi': 0.0001, 'tool': 0.01, 'delta': 0.03 * np.array([1, 1, 1, 1])},
+        lim={
+            'base_p': 0.01,
+            'base_phi': 0.0001,
+            'tool': 0.01,
+            'delta': 0.03 * np.array([1, 1, 1, 1]),
+            'epsilon': 0.001 * np.array([1, 1, 1]),
+        },
         prms=['delta']
     ):
 
@@ -64,25 +70,12 @@ class CalibrationEnv(gym.Env):
         self._n_episode = -1  # number of episodes
         # self._config = self.setup_configs()
 
-        # default calibration parameters
-        # self._prms = {
-        #     'base_p': np.zeros(3),
-        #     'base_phi': np.zeros(3),
-        #     'delta': np.zeros(4),
-        #     'p_x': np.zeros(2),
-        #     'p_y': np.zeros(3),
-        #     'p_z': np.zeros(3),
-        #     'phi_y': np.zeros(5),
-        #     'phi_z': np.zeros(2),
-        #     'tool': np.zeros((3, 3)),
-        # }
         # parameters to tune
         self._prms_action = {key: value for (key, value) in self._prms.items() if key in prms}
 
-        self._p_base = None
-        self._R_base = None
-        self._p_tool = None
-
+        # self._p_base = None
+        # self._R_base = None
+        # self._p_tool = None
         self._quater = quater
         self._prev_distance = None  # previous distance to goal used to compute the reward
         self._all_config = True  # if True compute the mean distance to goal using all configurations
@@ -102,6 +95,22 @@ class CalibrationEnv(gym.Env):
     @property
     def config(self):
         return self._config
+
+    @property
+    def prms(self):
+        return self._prms
+
+    @property
+    def p_base(self):
+        return self._p_base
+
+    @property
+    def R_base(self):
+        return self._R_base
+
+    @property
+    def p_tool(self):
+        return self._p_tool
 
     def build_space(self):
         # the action encodes the calibration parameters (positional and rotational)
@@ -219,14 +228,14 @@ class CalibrationEnv(gym.Env):
         ind_ = 0
         for prm in self._prms_action:
             ind = self._prms_action[prm].size + ind_
-            if prm == 'tool':
-                self._prms[prm] = action[ind_:ind].reshape(3, 3)
-            else:
-                self._prms[prm] = action[ind_:ind]
 
             if prm == 'delta':
                 if self._tune:
                     self._prms[prm] = action[ind_:ind] + self._calib_prms
+            elif prm == 'tool':
+                self._prms[prm] = action[ind_:ind].reshape(3, 3)
+            else:
+                self._prms[prm] = action[ind_:ind]
             ind_ = ind
 
         self._FK = Kinematics(
@@ -241,14 +250,15 @@ class CalibrationEnv(gym.Env):
             tool=self._prms['tool'],
             p_base=self._p_base,
             R_base=self._R_base,
-            p_tool=self._p_tool
+            p_tool=self._p_tool,
+            ksi=self._prms['ksi']
         )
         if tool is not None:
             pos = []
             for j in range(3):
-                pos.append(self._FK.forward_kinematics(q=self._q, j=j)[0])
+                pos.append(self._FK.forward_kinematics(q=self._q, j=j, epsilon = self._prms['epsilon'] * 0.001)[0]) 
         else:
-            pos = self._FK.forward_kinematics(q=self._q)[0]
+            pos = self._FK.forward_kinematics(q=self._q, epsilon = self._prms['epsilon'] * 0.001)[0]
 
         return np.array(pos)
 

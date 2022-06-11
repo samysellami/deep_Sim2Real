@@ -1,5 +1,6 @@
 import numpy as np
 from deep_calibration.calibration.utils.utils import get_length_dict
+from copy import deepcopy
 
 
 class Jacobian():

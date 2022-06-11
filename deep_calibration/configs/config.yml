@@ -1,5 +1,5 @@
 ADAPT:
-    total_timesteps: 500
+    total_timesteps: 2000
     environment: calib_env-v0
 
 sac:

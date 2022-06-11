@@ -41,7 +41,7 @@ class Calibration:
         # parameters to identify
         self._delta = np.array([0.01, -0.02, 0.03, -0.02])
         self._ksi = np.diag([5, 2, 3, 4, 8, 0]) * 0.000001
-        self._noise_std = 0.0 * 0.001  # noise for measurement simulation
+        self._noise_std = 0.2 * 0.001  # noise for measurement simulation
 
         # default calibration parameters
         self._prms = {
@@ -54,7 +54,8 @@ class Calibration:
             'phi_y': np.zeros(5),
             'phi_z': np.zeros(2),
             'tool': np.zeros((3, 3)),
-            "ksi": np.zeros(self._ksi.shape)
+            "ksi": np.zeros(self._ksi.shape),
+            "epsilon": np.zeros(3)
         }
 
         self._n = 3  # number of tools used for calibration
@@ -69,7 +70,7 @@ class Calibration:
         )
         # elastostatic calibration
         self._ksi_theta = True # perform the joints elastostatic calibration
-        self._ksi_link = None # perform the links elastostatic calibration
+        self._ksi_link = True # perform the links elastostatic calibration
         # measurement data
         self._F = np.array([0, 360, 560])
         self._goal_pos = self.build_goal_pos()
@@ -163,9 +164,9 @@ class Calibration:
     def p_robot(self, i=0, j=None, ksi=None, ksi_link=None):
         if j is not None:
             if ksi is None:
-                return self._FK.forward_kinematics(q=self.config(i), j=j)[0]
+                return self._FK.forward_kinematics(q=self.config(i), j=j, epsilon = self._prms['epsilon'] * 0.001)[0] 
             else:
-                return self._FK.forward_kinematics(q=self.config(i), j=j, ksi=ksi, ksi_link=ksi_link,  F=self._F)[0]
+                return self._FK.forward_kinematics(q=self.config(i), j=j, ksi=ksi, ksi_link=ksi_link,  F=self._F, epsilon = self._prms['epsilon'] * 0.001)[0] 
 
         return self._FK.forward_kinematics(q=self.config(i))[0]
 
@@ -224,7 +225,6 @@ class Calibration:
         self._p_base = np.zeros(3)
         self._R_base = np.identity(3)
         self._p_tool = []
-        print(f'\n distance to goal before the base and tool identification: {self.dist_to_goal() * 1000:.4f}')
 
         self.update_kinematics(
             prms={'delta': self._delta}
@@ -352,19 +352,19 @@ class Calibration:
         ind_ = 0
         for prm in prms_action:
             ind = prms_action[prm].size + ind_
-            if prm == 'tool':
-                self._prms[prm] = best_action[ind_:ind].reshape(3, 3)
-            else:
-                self._prms[prm] = best_action[ind_:ind]
 
             if prm == 'delta':
                 self._delta += best_action[ind_:ind]
                 self._prms[prm] = self._delta
-
+            elif prm == 'tool':
+                self._prms[prm] = best_action[ind_:ind].reshape(3, 3)
+            else:
+                self._prms[prm] = best_action[ind_:ind]
             ind_ = ind
         self.update_kinematics(
             prms={'delta': self._delta, 'ksi': self._ksi}
         )
+
 
 
 def main():

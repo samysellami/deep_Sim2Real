@@ -157,7 +157,7 @@ def main(args, unknown_args):  # noqa: C901
     best_model = ALGOS[algo].load(model_path, env=env, custom_objects=custom_objects, **kwargs)
 
     obs = env.reset()
-    np.set_printoptions(precision=4, suppress=True)
+    np.set_printoptions(precision=7, suppress=True)
 
     identified_prms = save_read_data(
         file_name='p_ij',
@@ -182,7 +182,7 @@ def main(args, unknown_args):  # noqa: C901
             # print(f'distance to goal for config {i} = {dist:.4f}')
             # print(f'parameters for config {i} is {action}')
 
-        print(f' average distance to goal : {np.mean(dists):.4f}')
+        print(f' average distance to goal : {np.mean(dists):.7f}')
 
         if tune:
             actions = actions + calib_prms
@@ -192,9 +192,8 @@ def main(args, unknown_args):  # noqa: C901
         best_action = actions[ind_min]
         worst_action = actions[ind_max]
 
-        print(f' worst distance to goal : {dists[ind_max]:.4f}')
-        print(f' best distance to goal : {dists[ind_min]:.4f}')
-
+        print(f' worst distance to goal : {dists[ind_max]:.7f}')
+        print(f' best distance to goal : {dists[ind_min]:.7f}')
         # print(f'best action =  {best_action}')
         # print(f'worst action =  {worst_action}')
         # std_actions = std(actions, best_action)

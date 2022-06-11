@@ -68,11 +68,11 @@ class Kinematics:
         prmsJ_theta = calibParams._prmsJ_theta
         self._prmsJ_theta = {joint: prmsJ_theta[joint]
                              for count, joint in enumerate(prmsJ_theta.keys()) if count < len(ksi)}
+        self._theta = np.zeros(len(self._prmsJ_theta))
         self._jacob_theta = Jacobian(
             self,
             prms_J = self._prmsJ_theta
         )
-        self._theta = np.zeros(len(self._prmsJ_theta))
 
         # the jacobian for the elastostaic model (links only)
         self._K = calibParams._K
@@ -82,7 +82,6 @@ class Kinematics:
             prms_J = self._prmsJ_links,
             jacob_link=True
         )
-        # elastostatic deflections
 
     def R_baseq(self, q):
         Rb = np.zeros((4, 4))
@@ -160,7 +159,7 @@ class Kinematics:
 
     def forward_kinematics(
             self, k=None, j=None, q=np.array([0, 0, 0, 0, 0, 0]),
-            ksi=None, ksi_link=None, F=None, f=None):
+            ksi=None, ksi_link=None, F=None, f=None, epsilon = np.zeros(3)):
         """
         Computes the forward kinematics of the UR10 arm robot
                 :param q: (np.ndarray) the joint angles
@@ -177,7 +176,6 @@ class Kinematics:
         if ksi_link is not None:
             J_ij = self._jacob_links.build_jacobian(q=q, j=j)
             delta_t = J_ij.dot(np.linalg.inv(self._K)).dot(J_ij.transpose()).dot(F)
-            # print(delta_t)
 
         if self._p_base is not None and self._R_base is not None:
             H_base = [np.identity(4)]
@@ -303,4 +301,4 @@ class Kinematics:
         else:
             H_robot = multi_dot(H_total[:k])
 
-        return (H_robot[0:3, 3] + delta_t), H_robot[0:3, 0:3]
+        return (H_robot[0:3, 3] + delta_t + epsilon), H_robot[0:3, 0:3]
